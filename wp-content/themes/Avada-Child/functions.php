@@ -63,6 +63,41 @@ function project_b_menu_url( $type, $slug ) {
     return $page ? get_permalink( $page ) : '#';
 }
 
+function project_b_get_blog_menu_items() {
+    return array(
+        array(
+            'label' => '전체',
+            'type'  => 'category',
+            'slug'  => 'blog',
+            'url'   => project_b_menu_url( 'category', 'blog' ),
+        ),
+        array(
+            'label' => '잡상노트',
+            'type'  => 'category',
+            'slug'  => 'blog-notes',
+            'url'   => project_b_menu_url( 'category', 'blog-notes' ),
+        ),
+        array(
+            'label' => '일상',
+            'type'  => 'category',
+            'slug'  => 'blog-daily',
+            'url'   => project_b_menu_url( 'category', 'blog-daily' ),
+        ),
+        array(
+            'label' => '캐나다 워홀',
+            'type'  => 'category',
+            'slug'  => 'canada-working-holiday',
+            'url'   => project_b_menu_url( 'category', 'canada-working-holiday' ),
+        ),
+        array(
+            'label' => 'Done List',
+            'type'  => 'category',
+            'slug'  => 'blog-done-list',
+            'url'   => project_b_menu_url( 'category', 'blog-done-list' ),
+        ),
+    );
+}
+
 function project_b_is_privileged_user() {
     $user = wp_get_current_user();
 
@@ -221,25 +256,25 @@ function project_b_get_board_injected_post_slugs() {
 }
 
 function project_b_get_blog_overlay_items() {
-    return array(
-        array( 'label' => '전체', 'url' => project_b_menu_url( 'category', 'blog' ) ),
-        array( 'label' => '잡상노트', 'url' => project_b_menu_url( 'category', 'blog-notes' ) ),
-        array( 'label' => '일상', 'url' => project_b_menu_url( 'category', 'blog-daily' ) ),
-        array( 'label' => '캐나다 워홀', 'url' => project_b_menu_url( 'category', 'canada-working-holiday' ) ),
-        array( 'label' => 'Done List', 'url' => project_b_menu_url( 'category', 'blog-done-list' ) ),
+    return array_map(
+        function ( $item ) {
+            return array(
+                'label' => $item['label'],
+                'url'   => $item['url'],
+            );
+        },
+        project_b_get_blog_menu_items()
     );
 }
 
 function project_b_get_blog_board_terms() {
     $terms = array();
-    $slugs = array(
-        'blog-notes',
-        'blog-daily',
-        'canada-working-holiday',
-        'blog-done-list',
-    );
+    foreach ( project_b_get_blog_menu_items() as $item ) {
+        if ( empty( $item['slug'] ) || 'blog' === $item['slug'] ) {
+            continue;
+        }
 
-    foreach ( $slugs as $slug ) {
+        $slug = $item['slug'];
         $term = get_category_by_slug( $slug );
 
         if ( $term instanceof WP_Term ) {
@@ -255,12 +290,7 @@ function project_b_overlay_menu_payload() {
         array(
             'label' => 'BLOG',
             'url'   => project_b_menu_url( 'category', 'blog' ),
-            'items' => array(
-                array( 'label' => '잡상노트', 'url' => project_b_menu_url( 'category', 'blog-notes' ) ),
-                array( 'label' => '일상', 'url' => project_b_menu_url( 'category', 'blog-daily' ) ),
-                array( 'label' => '캐나다 워홀', 'url' => project_b_menu_url( 'category', 'canada-working-holiday' ) ),
-                array( 'label' => 'Done List', 'url' => project_b_menu_url( 'category', 'blog-done-list' ) ),
-            ),
+            'items' => project_b_get_blog_overlay_items(),
         ),
         array(
             'label' => 'REVIEW',
@@ -317,10 +347,6 @@ function project_b_overlay_menu_payload() {
 
 function project_b_render_overlay_menu_override() {
     $menu = project_b_overlay_menu_payload();
-
-    if ( isset( $menu[0] ) ) {
-        $menu[0]['items'] = project_b_get_blog_overlay_items();
-    }
     ?>
     <nav class="project-b-overlay-menu" aria-label="Project B menu">
         <button class="project-b-overlay-menu__close" type="button" aria-label="메뉴 닫기"></button>
@@ -333,19 +359,14 @@ function project_b_render_overlay_menu_override() {
         <div class="project-b-overlay-menu__body">
             <div class="project-b-overlay-menu__primary">
                 <?php foreach ( $menu as $index => $top_item ) : ?>
-                    <section class="project-b-overlay-menu__group" data-menu-key="menu-<?php echo esc_attr( $index ); ?>">
+                    <section
+                        class="project-b-overlay-menu__group"
+                        data-menu-key="menu-<?php echo esc_attr( $index ); ?>"
+                        data-menu-items="<?php echo esc_attr( wp_json_encode( array_values( $top_item['items'] ) ) ); ?>"
+                    >
                         <a class="project-b-overlay-menu__top" href="<?php echo esc_url( $top_item['url'] ); ?>">
                             <?php echo esc_html( $top_item['label'] ); ?>
                         </a>
-                        <ul class="project-b-overlay-menu__template" hidden>
-                            <?php foreach ( $top_item['items'] as $child_item ) : ?>
-                                <li>
-                                    <a href="<?php echo esc_url( $child_item['url'] ); ?>">
-                                        <?php echo esc_html( $child_item['label'] ); ?>
-                                    </a>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
                     </section>
                 <?php endforeach; ?>
             </div>
@@ -363,14 +384,14 @@ function project_b_overlay_menu_assets() {
     wp_enqueue_style( 'project-b-overlay-menu' );
     wp_add_inline_style(
         'project-b-overlay-menu',
-        '.project-b-overlay-menu{--pb-accent:#e78645;display:none;position:relative;padding:18px 0 90px}.project-b-overlay-menu.is-mounted{display:block;margin-top:0}.project-b-overlay-menu__close{position:absolute;right:4px;top:-10px;width:48px;height:48px;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;z-index:20}.project-b-overlay-menu__close:before,.project-b-overlay-menu__close:after{content:"";position:absolute;left:7px;top:22px;width:40px;height:4px;background:#000;transform:rotate(45deg);transform-origin:center}.project-b-overlay-menu__close:after{transform:rotate(-45deg)}.project-b-overlay-menu__search{display:flex;align-items:center;gap:18px;margin:82px 0 66px;padding:0 0 23px;border-bottom:4px solid #111}.project-b-overlay-menu__search input{width:100%;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:#111;font-size:32px;font-weight:900;line-height:1;letter-spacing:-.07em}.project-b-overlay-menu__search input::placeholder{color:#aaa;opacity:1}.project-b-overlay-menu__search-icon{position:relative;display:block;width:42px;height:42px;flex:0 0 42px;margin:0}.project-b-overlay-menu__search-icon:before{content:"";position:absolute;left:0;top:0;width:28px;height:28px;border:5px solid #000;border-radius:50%}.project-b-overlay-menu__search-icon:after{content:"";position:absolute;right:1px;bottom:2px;width:20px;height:5px;background:#000;transform:rotate(45deg);transform-origin:center}.project-b-overlay-menu__body{display:grid;grid-template-columns:300px minmax(240px,1fr);column-gap:22px;align-items:start}.project-b-overlay-menu__primary{position:relative}.project-b-overlay-menu__group{position:relative;margin:0 0 43px;min-height:58px}.project-b-overlay-menu__top{display:inline-block;color:#050505!important;text-decoration:none!important;font-size:36px;font-weight:900;line-height:1;letter-spacing:.18em;transition:color .16s ease}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__top,.project-b-overlay-menu__group:hover .project-b-overlay-menu__top,.project-b-overlay-menu__group:focus-within .project-b-overlay-menu__top{color:var(--pb-accent)!important;text-decoration:none!important}.project-b-overlay-menu__panel{min-height:420px;padding-top:2px}.project-b-overlay-menu__children{display:flex;flex-direction:column;align-items:flex-start;gap:22px;list-style:none;margin:0;padding:0;width:100%}.project-b-overlay-menu__children:empty{display:block}.project-b-overlay-menu__children li{display:block;width:100%}.project-b-overlay-menu__children a{display:inline-block;color:#111!important;text-decoration:none!important;font-size:24px;font-weight:900;line-height:1.05;letter-spacing:-.06em;white-space:nowrap}.project-b-overlay-menu__children a:hover,.project-b-overlay-menu__children a:focus{color:var(--pb-accent)!important;text-decoration:none!important}.project-b-overlay-menu__template{display:none!important}.project-b-overlay-menu__account-slot[hidden]{display:none!important}@media (max-width:900px){.project-b-overlay-menu{padding-left:0;padding-right:0}.project-b-overlay-menu__search{margin-top:56px;margin-bottom:60px}.project-b-overlay-menu__body{grid-template-columns:260px minmax(220px,1fr);column-gap:12px}.project-b-overlay-menu__top{font-size:34px}.project-b-overlay-menu__children a{font-size:22px}}@media (max-width:760px){.project-b-overlay-menu__close{right:0;top:-6px}.project-b-overlay-menu__search{margin:56px 0 62px}.project-b-overlay-menu__search input{font-size:29px}.project-b-overlay-menu__body{display:block}.project-b-overlay-menu__top{font-size:32px;letter-spacing:.16em}.project-b-overlay-menu__group{min-height:auto;margin-bottom:36px}.project-b-overlay-menu__panel{display:none}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__template{display:flex!important;flex-direction:column;gap:14px;margin-top:18px;padding:0;list-style:none}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__template a{font-size:21px;font-weight:900;color:#111!important;text-decoration:none!important}}'
+        '.project-b-overlay-menu{--pb-accent:#e78645;display:none;position:relative;padding:18px 0 90px}.project-b-overlay-menu.is-mounted{display:block;margin-top:0}.project-b-overlay-menu__close{position:absolute;right:4px;top:-10px;width:48px;height:48px;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;z-index:20}.project-b-overlay-menu__close:before,.project-b-overlay-menu__close:after{content:"";position:absolute;left:7px;top:22px;width:40px;height:4px;background:#000;transform:rotate(45deg);transform-origin:center}.project-b-overlay-menu__close:after{transform:rotate(-45deg)}.project-b-overlay-menu__search{display:flex;align-items:center;gap:18px;margin:82px 0 66px;padding:0 0 23px;border-bottom:4px solid #111}.project-b-overlay-menu__search input{width:100%;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;color:#111;font-size:32px;font-weight:900;line-height:1;letter-spacing:-.07em}.project-b-overlay-menu__search input::placeholder{color:#aaa;opacity:1}.project-b-overlay-menu__search-icon{position:relative;display:block;width:42px;height:42px;flex:0 0 42px;margin:0}.project-b-overlay-menu__search-icon:before{content:"";position:absolute;left:0;top:0;width:28px;height:28px;border:5px solid #000;border-radius:50%}.project-b-overlay-menu__search-icon:after{content:"";position:absolute;right:1px;bottom:2px;width:20px;height:5px;background:#000;transform:rotate(45deg);transform-origin:center}.project-b-overlay-menu__body{display:grid;grid-template-columns:300px minmax(240px,1fr);column-gap:22px;align-items:start}.project-b-overlay-menu__primary{position:relative}.project-b-overlay-menu__group{position:relative;margin:0 0 43px;min-height:58px}.project-b-overlay-menu__top{display:inline-block;color:#050505!important;text-decoration:none!important;font-size:36px;font-weight:900;line-height:1;letter-spacing:.18em;transition:color .16s ease}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__top,.project-b-overlay-menu__group:hover .project-b-overlay-menu__top,.project-b-overlay-menu__group:focus-within .project-b-overlay-menu__top{color:var(--pb-accent)!important;text-decoration:none!important}.project-b-overlay-menu__panel{min-height:420px;padding-top:2px}.project-b-overlay-menu__children{display:flex;flex-direction:column;align-items:flex-start;gap:22px;list-style:none;margin:0;padding:0;width:100%}.project-b-overlay-menu__children:empty{display:block}.project-b-overlay-menu__children li{display:block;width:100%}.project-b-overlay-menu__children a{display:inline-block;color:#111!important;text-decoration:none!important;font-size:24px;font-weight:900;line-height:1.05;letter-spacing:-.06em;white-space:nowrap}.project-b-overlay-menu__children a:hover,.project-b-overlay-menu__children a:focus{color:var(--pb-accent)!important;text-decoration:none!important}.project-b-overlay-menu__account-slot[hidden]{display:none!important}@media (max-width:900px){.project-b-overlay-menu{padding-left:0;padding-right:0}.project-b-overlay-menu__search{margin-top:56px;margin-bottom:60px}.project-b-overlay-menu__body{grid-template-columns:260px minmax(220px,1fr);column-gap:12px}.project-b-overlay-menu__top{font-size:34px}.project-b-overlay-menu__children a{font-size:22px}}@media (max-width:760px){.project-b-overlay-menu__close{right:0;top:-6px}.project-b-overlay-menu__search{margin:56px 0 62px}.project-b-overlay-menu__search input{font-size:29px}.project-b-overlay-menu__body{display:block}.project-b-overlay-menu__top{font-size:32px;letter-spacing:.16em}.project-b-overlay-menu__group{min-height:auto;margin-bottom:36px}.project-b-overlay-menu__panel{display:none}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__children-inline{display:flex!important;flex-direction:column;gap:14px;margin-top:18px;padding:0;list-style:none}.project-b-overlay-menu__group.is-active .project-b-overlay-menu__children-inline a{font-size:21px;font-weight:900;color:#111!important;text-decoration:none!important}}'
     );
 
     wp_register_script( 'project-b-overlay-menu', false, array(), '1.0.0', true );
     wp_enqueue_script( 'project-b-overlay-menu' );
     wp_add_inline_script(
         'project-b-overlay-menu',
-        '(function(){function menuHTML(){return '. wp_json_encode( trim( preg_replace( '/\s+/', ' ', project_b_capture_overlay_menu() ) ) ) .';}var isClosing=false;var overlaySelectors=[".fusion-flyout-menu",".fusion-mobile-menu",".fusion-mobile-nav-holder",".fusion-header-has-flyout-menu-content",".awb-menu__overlay",".awb-off-canvas",".off-canvas-content"];function normalizeText(text){return(text||"").replace(/\s+/g," ").trim();}function restoreOverlayStyles(){if(isClosing){return;}overlaySelectors.forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){if(el.dataset.projectBClosed==="1"){el.style.display="";el.style.visibility="";el.style.opacity="";delete el.dataset.projectBClosed;}});});document.querySelectorAll("[data-project-b-panel-closed=\"1\"]").forEach(function(el){el.style.display="";el.style.visibility="";el.style.opacity="";delete el.dataset.projectBPanelClosed;});}function isOldMenuContainer(el){var text=normalizeText(el.textContent||"");return text.indexOf("BLOG")>-1&&text.indexOf("REVIEW")>-1&&text.indexOf("TRAVEL")>-1&&text.indexOf("PROS")>-1&&text.indexOf("LOG")>-1&&text.indexOf("OC")===-1;}function findTarget(){var nodes=document.querySelectorAll("nav,ul,div,section");for(var i=0;i<nodes.length;i++){var el=nodes[i];if(!el.classList.contains("project-b-overlay-menu")&&isOldMenuContainer(el)){var r=el.getBoundingClientRect();if(r.width>150&&r.height>150&&r.left>window.innerWidth*0.35){return el;}}}return null;}function captureNativeAccountMarkup(target){var nodes=target.querySelectorAll("li,div,p,section,ul");var bestHTML="";var bestLength=1/0;for(var i=0;i<nodes.length;i++){var el=nodes[i];var text=normalizeText(el.textContent||"");var links=el.querySelectorAll("a");if(!links.length){continue;}if(text.length>80||links.length>4){continue;}var hasLogin=text==="로그인"||text.indexOf("로그인 ")===0||text.indexOf(" 로그인")>-1;var hasLogoutSettings=text.indexOf("로그아웃")>-1&&text.indexOf("설정")>-1;if(!hasLogin&&!hasLogoutSettings){continue;}if(text.length<bestLength){bestHTML=el.outerHTML;bestLength=text.length;}}return bestHTML;}function hardCloseOverlay(btn){isClosing=true;var menu=btn.closest(".project-b-overlay-menu");var panel=menu?menu.parentElement:null;if(panel){while(panel.parentElement&&panel.parentElement!==document.body){var text=normalizeText(panel.textContent||"");var rect=panel.getBoundingClientRect();if(text.indexOf("BLOG")>-1&&text.indexOf("REVIEW")>-1&&rect.width>200&&rect.height>200){break;}panel=panel.parentElement;}}overlaySelectors.forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){el.classList.remove("fusion-is-active","active","open","is-open","awb-show","show");el.dataset.projectBClosed="1";el.style.visibility="hidden";el.style.opacity="0";});});if(panel){panel.dataset.projectBPanelClosed="1";panel.style.visibility="hidden";panel.style.opacity="0";panel.classList.remove("fusion-is-active","active","open","is-open","awb-show","show");}document.documentElement.classList.remove("fusion-flyout-menu-active","fusion-mobile-menu-design-flyout","awb-off-canvas-active","no-scroll");document.body.classList.remove("fusion-flyout-menu-active","fusion-mobile-menu-design-flyout","awb-off-canvas-active","no-scroll","overflow-hidden");document.body.style.overflow="";document.body.style.position="";document.querySelectorAll(".fusion-flyout-menu-toggle,.fusion-mobile-menu-icons a,[aria-expanded=true]").forEach(function(el){el.setAttribute("aria-expanded","false");});setTimeout(function(){isClosing=false;},220);}function closeOverlay(btn){hardCloseOverlay(btn);}function bindInteractiveMenu(root){var groups=root.querySelectorAll(".project-b-overlay-menu__group");var panel=root.querySelector(".project-b-overlay-menu__children");if(!groups.length||!panel){return;}function clearActive(){groups.forEach(function(item){item.classList.remove("is-active");});panel.innerHTML="";}function activate(group){groups.forEach(function(item){item.classList.toggle("is-active",item===group);});var template=group.querySelector(".project-b-overlay-menu__template");panel.innerHTML=template?template.innerHTML:"";}groups.forEach(function(group){group.addEventListener("mouseenter",function(){activate(group);});group.addEventListener("focusin",function(){activate(group);});});root.addEventListener("mouseleave",function(){clearActive();});clearActive();}function mount(){if(isClosing){return;}restoreOverlayStyles();var target=findTarget();if(!target){return;}if(target.dataset.projectBMenuMounted==="1"){return;}var nativeAccountMarkup=captureNativeAccountMarkup(target);target.dataset.projectBMenuMounted="1";target.innerHTML=menuHTML();var menu=target.querySelector(".project-b-overlay-menu");if(menu){menu.classList.add("is-mounted");bindInteractiveMenu(menu);var slot=menu.querySelector(".project-b-overlay-menu__account-slot");if(slot){if(nativeAccountMarkup){slot.hidden=false;slot.innerHTML=nativeAccountMarkup;}else{slot.remove();}}}var close=target.querySelector(".project-b-overlay-menu__close");if(close){close.addEventListener("click",function(event){event.preventDefault();event.stopPropagation();closeOverlay(close);});}}document.addEventListener("DOMContentLoaded",mount);document.addEventListener("click",function(event){if(event.target&&event.target.closest&&event.target.closest(".project-b-overlay-menu__close")){return;}restoreOverlayStyles();setTimeout(mount,80);setTimeout(mount,300);},true);document.addEventListener("keydown",function(event){if(event.key==="Escape"){var close=document.querySelector(".project-b-overlay-menu__close");if(close){close.click();}}});new MutationObserver(function(){if(!isClosing){mount();}}).observe(document.documentElement,{childList:true,subtree:true});})();'
+        '(function(){function menuHTML(){return '. wp_json_encode( trim( preg_replace( '/\s+/', ' ', project_b_capture_overlay_menu() ) ) ) .';}var isClosing=false;var overlaySelectors=[".fusion-flyout-menu",".fusion-mobile-menu",".fusion-mobile-nav-holder",".fusion-header-has-flyout-menu-content",".awb-menu__overlay",".awb-off-canvas",".off-canvas-content"];function normalizeText(text){return(text||"").replace(/\s+/g," ").trim();}function restoreOverlayStyles(){if(isClosing){return;}overlaySelectors.forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){if(el.dataset.projectBClosed==="1"){el.style.display="";el.style.visibility="";el.style.opacity="";delete el.dataset.projectBClosed;}});});document.querySelectorAll("[data-project-b-panel-closed=\"1\"]").forEach(function(el){el.style.display="";el.style.visibility="";el.style.opacity="";delete el.dataset.projectBPanelClosed;});}function isOldMenuContainer(el){var text=normalizeText(el.textContent||"");return text.indexOf("BLOG")>-1&&text.indexOf("REVIEW")>-1&&text.indexOf("TRAVEL")>-1&&text.indexOf("PROS")>-1&&text.indexOf("LOG")>-1&&text.indexOf("OC")===-1;}function findTarget(){var nodes=document.querySelectorAll("nav,ul,div,section");for(var i=0;i<nodes.length;i++){var el=nodes[i];if(!el.classList.contains("project-b-overlay-menu")&&isOldMenuContainer(el)){var r=el.getBoundingClientRect();if(r.width>150&&r.height>150&&r.left>window.innerWidth*0.35){return el;}}}return null;}function captureNativeAccountMarkup(target){var nodes=target.querySelectorAll("li,div,p,section,ul");var bestHTML="";var bestLength=1/0;for(var i=0;i<nodes.length;i++){var el=nodes[i];var text=normalizeText(el.textContent||"");var links=el.querySelectorAll("a");if(!links.length){continue;}if(text.length>80||links.length>4){continue;}var hasLogin=text==="로그인"||text.indexOf("로그인 ")===0||text.indexOf(" 로그인")>-1;var hasLogoutSettings=text.indexOf("로그아웃")>-1&&text.indexOf("설정")>-1;if(!hasLogin&&!hasLogoutSettings){continue;}if(text.length<bestLength){bestHTML=el.outerHTML;bestLength=text.length;}}return bestHTML;}function hardCloseOverlay(btn){isClosing=true;var menu=btn.closest(".project-b-overlay-menu");var panel=menu?menu.parentElement:null;if(panel){while(panel.parentElement&&panel.parentElement!==document.body){var text=normalizeText(panel.textContent||"");var rect=panel.getBoundingClientRect();if(text.indexOf("BLOG")>-1&&text.indexOf("REVIEW")>-1&&rect.width>200&&rect.height>200){break;}panel=panel.parentElement;}}overlaySelectors.forEach(function(sel){document.querySelectorAll(sel).forEach(function(el){el.classList.remove("fusion-is-active","active","open","is-open","awb-show","show");el.dataset.projectBClosed="1";el.style.visibility="hidden";el.style.opacity="0";});});if(panel){panel.dataset.projectBPanelClosed="1";panel.style.visibility="hidden";panel.style.opacity="0";panel.classList.remove("fusion-is-active","active","open","is-open","awb-show","show");}document.documentElement.classList.remove("fusion-flyout-menu-active","fusion-mobile-menu-design-flyout","awb-off-canvas-active","no-scroll");document.body.classList.remove("fusion-flyout-menu-active","fusion-mobile-menu-design-flyout","awb-off-canvas-active","no-scroll","overflow-hidden");document.body.style.overflow="";document.body.style.position="";document.querySelectorAll(".fusion-flyout-menu-toggle,.fusion-mobile-menu-icons a,[aria-expanded=true]").forEach(function(el){el.setAttribute("aria-expanded","false");});setTimeout(function(){isClosing=false;},220);}function closeOverlay(btn){hardCloseOverlay(btn);}function parseItems(group){var raw=group.getAttribute("data-menu-items");if(!raw){return [];}try{return JSON.parse(raw)||[];}catch(error){return [];}}function renderItemsMarkup(items){return items.map(function(item){var label=item&&item.label?String(item.label):"";var url=item&&item.url?String(item.url):"#";return "<li><a href=\\""+url.replace(/"/g,"&quot;")+"\\">"+label.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</a></li>";}).join("");}function ensureInlineList(group,items){var inline=group.querySelector(".project-b-overlay-menu__children-inline");if(!inline){inline=document.createElement("ul");inline.className="project-b-overlay-menu__children-inline";inline.hidden=true;group.appendChild(inline);}inline.innerHTML=renderItemsMarkup(items);return inline;}function bindInteractiveMenu(root){var groups=root.querySelectorAll(".project-b-overlay-menu__group");var panel=root.querySelector(".project-b-overlay-menu__children");if(!groups.length||!panel){return;}function clearActive(){groups.forEach(function(item){item.classList.remove("is-active");var inline=item.querySelector(".project-b-overlay-menu__children-inline");if(inline){inline.hidden=true;}});panel.innerHTML="";}function activate(group){groups.forEach(function(item){item.classList.toggle("is-active",item===group);});var items=parseItems(group);panel.innerHTML=renderItemsMarkup(items);groups.forEach(function(item){var inline=item.querySelector(".project-b-overlay-menu__children-inline");if(inline){inline.hidden=true;}});var activeInline=ensureInlineList(group,items);activeInline.hidden=false;}groups.forEach(function(group){group.addEventListener("mouseenter",function(){activate(group);});group.addEventListener("focusin",function(){activate(group);});group.addEventListener("click",function(){if(window.innerWidth<=760){activate(group);}});});root.addEventListener("mouseleave",function(){if(window.innerWidth>760){clearActive();}});clearActive();}function mount(){if(isClosing){return;}restoreOverlayStyles();var target=findTarget();if(!target){return;}if(target.dataset.projectBMenuMounted==="1"){return;}var nativeAccountMarkup=captureNativeAccountMarkup(target);target.dataset.projectBMenuMounted="1";target.innerHTML=menuHTML();var menu=target.querySelector(".project-b-overlay-menu");if(menu){menu.classList.add("is-mounted");bindInteractiveMenu(menu);var slot=menu.querySelector(".project-b-overlay-menu__account-slot");if(slot){if(nativeAccountMarkup){slot.hidden=false;slot.innerHTML=nativeAccountMarkup;}else{slot.remove();}}}var close=target.querySelector(".project-b-overlay-menu__close");if(close){close.addEventListener("click",function(event){event.preventDefault();event.stopPropagation();closeOverlay(close);});}}document.addEventListener("DOMContentLoaded",mount);document.addEventListener("click",function(event){if(event.target&&event.target.closest&&event.target.closest(".project-b-overlay-menu__close")){return;}restoreOverlayStyles();setTimeout(mount,80);setTimeout(mount,300);},true);document.addEventListener("keydown",function(event){if(event.key==="Escape"){var close=document.querySelector(".project-b-overlay-menu__close");if(close){close.click();}}});new MutationObserver(function(){if(!isClosing){mount();}}).observe(document.documentElement,{childList:true,subtree:true});})();'
     );
 }
 // Keep the theme's native overlay menu markup/styles active.
