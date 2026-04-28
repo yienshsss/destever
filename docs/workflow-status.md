@@ -32,6 +32,30 @@
 - PHP extensions enabled for local tooling:
   `mysqli`, `mbstring`, `curl`, `zip`
 
+## Environment status on the home Mac
+
+- Local source clone:
+  `/Users/yien/Documents/work/destever-source`
+- Previous CloudMounter/Synology WordPress mount:
+  `/Users/yien/Library/CloudStorage/CloudMounter-NAS/docker/destever`
+- Git installed:
+  `git version 2.50.1 (Apple Git-155)`
+- Node.js installed:
+  `v24.11.1`
+- npm available:
+  `11.6.2`
+- Python available:
+  `Python 3.9.6`
+- PHP installed with Homebrew:
+  `PHP 8.5.5`
+- Composer installed with Homebrew:
+  `Composer 2.9.7`
+- WP-CLI installed with Homebrew:
+  `WP-CLI 2.12.0`
+- PHP extensions enabled for local tooling:
+  `mysqli`, `mbstring`, `curl`, `zip`
+- Note: WP-CLI currently runs on PHP 8.5.5 but prints a PHP deprecation warning from one bundled dependency. The command still completes successfully.
+
 ## GitHub account split
 
 - Work GitHub SSH alias: `github-work`
@@ -79,10 +103,11 @@ powershell -ExecutionPolicy Bypass -File .\tools\sync-theme-to-live.ps1
 
 ## Home Mac workflow
 
-1. Configure `github-work` and `github-personal` in `~/.ssh/config`.
-2. Clone the repository fresh to a normal local folder.
-3. Work only from that local clone.
-4. Use the same rule: pull first, commit and push after changes.
+1. Work only from `/Users/yien/Documents/work/destever-source`.
+2. Do not edit the CloudMounter/Synology mount directly except for emergency recovery.
+3. Use the same rule: pull first, commit and push after changes.
+4. The repository remote must stay on the personal alias:
+   `git@github-personal:yienshsss/destever.git`
 
 ## Synology deployment rule
 
