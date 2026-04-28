@@ -174,6 +174,10 @@ if ( $current_cat->parent > 0 ) {
 	);
 }
 
+if ( 'blog' === $title_cat->slug && function_exists( 'project_b_get_blog_board_terms' ) ) {
+	$sub_cats = project_b_get_blog_board_terms();
+}
+
 $landing_config = function_exists( 'project_b_deep_menu_landing_config' ) ? project_b_deep_menu_landing_config() : array();
 $board_all_url  = get_category_link( $title_cat );
 

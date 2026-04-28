@@ -220,6 +220,36 @@ function project_b_get_board_injected_post_slugs() {
     return array();
 }
 
+function project_b_get_blog_overlay_items() {
+    return array(
+        array( 'label' => '전체', 'url' => project_b_menu_url( 'category', 'blog' ) ),
+        array( 'label' => '잡상노트', 'url' => project_b_menu_url( 'category', 'blog-notes' ) ),
+        array( 'label' => '일상', 'url' => project_b_menu_url( 'category', 'blog-daily' ) ),
+        array( 'label' => '캐나다 워홀', 'url' => project_b_menu_url( 'category', 'canada-working-holiday' ) ),
+        array( 'label' => 'Done List', 'url' => project_b_menu_url( 'category', 'blog-done-list' ) ),
+    );
+}
+
+function project_b_get_blog_board_terms() {
+    $terms = array();
+    $slugs = array(
+        'blog-notes',
+        'blog-daily',
+        'canada-working-holiday',
+        'blog-done-list',
+    );
+
+    foreach ( $slugs as $slug ) {
+        $term = get_category_by_slug( $slug );
+
+        if ( $term instanceof WP_Term ) {
+            $terms[] = $term;
+        }
+    }
+
+    return $terms;
+}
+
 function project_b_overlay_menu_payload() {
     return array(
         array(
@@ -287,6 +317,10 @@ function project_b_overlay_menu_payload() {
 
 function project_b_render_overlay_menu_override() {
     $menu = project_b_overlay_menu_payload();
+
+    if ( isset( $menu[0] ) ) {
+        $menu[0]['items'] = project_b_get_blog_overlay_items();
+    }
     ?>
     <nav class="project-b-overlay-menu" aria-label="Project B menu">
         <button class="project-b-overlay-menu__close" type="button" aria-label="메뉴 닫기"></button>
