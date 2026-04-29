@@ -4,9 +4,10 @@ Date: 2026-04-28
 
 ## Status
 
-- This login/register recovery work is **not approved for deployment yet**.
-- Do not commit, push, or sync the current login recovery code as-is.
-- Current local working changes remain only in the local workspace.
+- The first login/register recovery attempt was not approved for deployment.
+- A safer code-based recovery pass now exists in Git as:
+  - `wp-content/mu-plugins/project-b-auth-pages.php`
+- This pass recreates the public auth pages from code instead of relying on one-off manual DB fixes.
 
 ## What Happened
 
@@ -53,3 +54,29 @@ Date: 2026-04-28
   - Ultimate Member page bindings that used different page IDs before
 - Restore the original design path first.
 - Only after that, reconnect login/register URLs to the restored pages.
+
+## Code-Based Recovery Added
+
+The Mac recovery pass added a mu-plugin that ensures these pages exist:
+
+- `/login/`
+- `/register/`
+- `/password-reset/`
+
+It uses Avada/Fusion Builder auth shortcodes:
+
+- `[fusion_login]`
+- `[fusion_register]`
+- `[fusion_lost_password]`
+
+It also routes WordPress auth helpers to the custom pages:
+
+- `wp_login_url()` -> `/login/`
+- `wp_registration_url()` -> `/register/`
+- `wp_lostpassword_url()` -> `/password-reset/`
+
+Important limitation:
+
+- This does not restore a deleted custom page design byte-for-byte.
+- It recreates functional custom pages with Project B styling from code.
+- If the exact previous design is found later in a DB backup or page history, replace the generated page contents or convert that design into this mu-plugin.
