@@ -5,6 +5,8 @@ param(
 
 $sourceTheme = Join-Path $SourceRoot "wp-content\\themes\\Avada-Child"
 $liveTheme = Join-Path $LiveRoot "wp-content\\themes\\Avada-Child"
+$sourceMuPlugins = Join-Path $SourceRoot "wp-content\\mu-plugins"
+$liveMuPlugins = Join-Path $LiveRoot "wp-content\\mu-plugins"
 
 if (-not (Test-Path $sourceTheme)) {
     Write-Error "Source theme not found: $sourceTheme"
@@ -22,4 +24,17 @@ if ($LASTEXITCODE -gt 7) {
     exit $LASTEXITCODE
 }
 
-Write-Host "Theme synced to live WordPress folder."
+if (Test-Path $sourceMuPlugins) {
+    if (-not (Test-Path $liveMuPlugins)) {
+        New-Item -ItemType Directory -Force -Path $liveMuPlugins | Out-Null
+    }
+
+    robocopy $sourceMuPlugins $liveMuPlugins /MIR
+
+    if ($LASTEXITCODE -gt 7) {
+        Write-Error "mu-plugins robocopy failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+}
+
+Write-Host "Theme and mu-plugins synced to live WordPress folder."
