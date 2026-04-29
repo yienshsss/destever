@@ -110,6 +110,24 @@ function project_b_is_admin_viewer() {
     return current_user_can( 'manage_options' );
 }
 
+function project_b_can_view_member_menu() {
+    if ( project_b_is_admin_viewer() ) {
+        return true;
+    }
+
+    return project_b_user_has_named_role(
+        wp_get_current_user(),
+        array(
+            'administrator',
+            'admin',
+            'um_custom_role_1',
+            'um_custom_role_2',
+            '앤오',
+            '지인',
+        )
+    );
+}
+
 function project_b_normalize_access_label( $value ) {
     $value = trim( (string) $value );
 
@@ -267,6 +285,21 @@ function project_b_get_blog_overlay_items() {
     );
 }
 
+function project_b_filter_blog_menu_items_by_access( $items ) {
+    if ( project_b_can_view_member_menu() ) {
+        return $items;
+    }
+
+    return array_values(
+        array_filter(
+            (array) $items,
+            function ( $item ) {
+                return empty( $item['slug'] ) || 'blog-done-list' !== $item['slug'];
+            }
+        )
+    );
+}
+
 function project_b_get_blog_board_terms() {
     $terms = array();
     foreach ( project_b_get_blog_menu_items() as $item ) {
@@ -286,11 +319,11 @@ function project_b_get_blog_board_terms() {
 }
 
 function project_b_overlay_menu_payload() {
-    return array(
+    $menu = array(
         array(
             'label' => 'BLOG',
             'url'   => project_b_menu_url( 'category', 'blog' ),
-            'items' => project_b_get_blog_overlay_items(),
+            'items' => project_b_filter_blog_menu_items_by_access( project_b_get_blog_overlay_items() ),
         ),
         array(
             'label' => 'REVIEW',
@@ -342,6 +375,19 @@ function project_b_overlay_menu_payload() {
                 array( 'label' => '그 외', 'url' => project_b_menu_url( 'category', 'oc-etc' ) ),
             ),
         ),
+    );
+
+    if ( project_b_can_view_member_menu() ) {
+        return $menu;
+    }
+
+    return array_values(
+        array_filter(
+            $menu,
+            function ( $item ) {
+                return ! isset( $item['label'] ) || ! in_array( $item['label'], array( 'PROS', 'LOG', 'OC' ), true );
+            }
+        )
     );
 }
 
@@ -418,6 +464,59 @@ function project_b_force_child_single_template( $template ) {
     return $template;
 }
 add_filter( 'template_include', 'project_b_force_child_single_template', 99 );
+
+function project_b_get_member_only_category_slugs() {
+    return array(
+        'blog-done-list',
+        'pros',
+        'commission-request',
+        'personal-work',
+        'log',
+        'personal-creation-log',
+        'art-study',
+        'scribble',
+        'oc-picrew-backup',
+        'art-commission',
+        'commu-log-backup',
+        'oc-etc',
+    );
+}
+
+function project_b_get_member_only_page_slugs() {
+    return array(
+        'oc',
+        'oc-couples',
+    );
+}
+
+function project_b_enforce_member_only_sections() {
+    if ( is_admin() || project_b_can_view_member_menu() ) {
+        return;
+    }
+
+    if ( is_category( project_b_get_member_only_category_slugs() ) || is_page( project_b_get_member_only_page_slugs() ) ) {
+        if ( is_user_logged_in() ) {
+            project_b_send_restricted_404();
+        }
+
+        project_b_redirect_to_login_for_current_url();
+    }
+}
+add_action( 'template_redirect', 'project_b_enforce_member_only_sections', 1 );
+
+function project_b_enqueue_member_menu_guard() {
+    if ( project_b_can_view_member_menu() ) {
+        return;
+    }
+
+    wp_register_script( 'project-b-member-menu-guard', false, array(), '1.0.0', true );
+    wp_enqueue_script( 'project-b-member-menu-guard' );
+    wp_add_inline_script(
+        'project-b-member-menu-guard',
+        "(function(){function normalize(text){return (text||'').replace(/\\s+/g,' ').trim().toUpperCase();}function guard(){document.querySelectorAll('.pv-menu-item').forEach(function(item){var top=item.querySelector('.pv-menu-cat');if(!top){return;}var label=normalize(top.textContent);if(label==='PROS'||label==='LOG'||label==='OC'){item.remove();return;}if(label==='BLOG'){item.querySelectorAll('.pv-menu-sub a').forEach(function(link){if((link.getAttribute('href')||'').indexOf('blog-done-list')>-1||normalize(link.textContent)==='DONE LIST'){link.remove();}});}});}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',guard);}else{guard();}window.addEventListener('load',guard);})();"
+    );
+}
+add_action( 'wp_enqueue_scripts', 'project_b_enqueue_member_menu_guard', 30 );
 
 function project_b_enable_post_excerpt() {
     add_post_type_support( 'post', 'excerpt' );

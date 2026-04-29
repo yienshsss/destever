@@ -1,0 +1,49 @@
+services:
+  wordpress:
+    image: wordpress:php8.3-apache
+    container_name: destever-local-wordpress
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8160:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      WORDPRESS_DEBUG: ${WORDPRESS_DEBUG:-0}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', '6379');
+        define('FS_METHOD', 'direct');
+        define('WP_HOME', 'http://localhost:8160');
+        define('WP_SITEURL', 'http://localhost:8160');
+        define('WP_DEBUG', true);
+        define('WP_DEBUG_LOG', true);
+        define('WP_DEBUG_DISPLAY', true);
+        define('WP_DISABLE_FATAL_ERROR_HANDLER', true);
+    volumes:
+      - ../.local/wp-content:/var/www/html/wp-content
+
+  db:
+    image: mariadb:11
+    container_name: destever-local-db
+    restart: unless-stopped
+    command:
+      - --skip-grant-tables
+    environment:
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_USER: ${WORDPRESS_DB_USER}
+      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ../.local/db:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: destever-local-redis
+    restart: unless-stopped
+    volumes:
+      - ../.local/redis:/data
