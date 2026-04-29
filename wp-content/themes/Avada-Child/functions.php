@@ -479,6 +479,7 @@ function project_b_get_member_only_category_slugs() {
         'art-commission',
         'commu-log-backup',
         'oc-etc',
+        'oc',
         'kelden',
         'kelden-text',
         'kelden-art',
