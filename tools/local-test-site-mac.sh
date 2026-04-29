@@ -13,6 +13,7 @@ LOCAL_DB_ROOT="$TEST_ROOT/db"
 LOCAL_REDIS_ROOT="$TEST_ROOT/redis"
 REPO_WP_CONTENT="$REPO_ROOT/wp-content"
 PROJECT_B_TEST_PORT="${PROJECT_B_TEST_PORT:-8161}"
+LOCAL_SITE_URL="http://localhost:$PROJECT_B_TEST_PORT"
 
 ensure_env() {
   mkdir -p "$TEST_ROOT" "$LOCAL_WP_CONTENT" "$LOCAL_DB_ROOT" "$LOCAL_REDIS_ROOT"
@@ -65,6 +66,7 @@ check_test_runtime() {
 
 sync_repo_overrides() {
   check_test_runtime
+  echo "Overlaying Git-managed wp-content from $REPO_WP_CONTENT"
   mkdir -p "$LOCAL_WP_CONTENT"
   rsync -rlt "$REPO_WP_CONTENT/" "$LOCAL_WP_CONTENT/"
 
@@ -74,8 +76,145 @@ sync_repo_overrides() {
 
 compose() {
   ensure_env
+  echo "Running docker compose $*"
   PROJECT_B_TEST_ROOT="$TEST_ROOT" PROJECT_B_TEST_PORT="$PROJECT_B_TEST_PORT" \
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+wp_cli() {
+  echo "The wp action is not supported in this local Docker workflow yet." >&2
+  exit 1
+}
+
+wordpress_php() {
+  local php_code="$1"
+  docker exec -i destever-mac-test-wordpress php <<PHP
+<?php
+require '/var/www/html/wp-load.php';
+$php_code
+PHP
+}
+
+update_local_site_urls() {
+  local source_site_url
+  echo "Detecting source site URL from copied DB"
+  source_site_url="$(wordpress_php "echo (string) get_option('home');" | tr -d '\r')"
+
+  if [[ -z "$source_site_url" ]]; then
+    echo "Could not detect source site URL from local DB." >&2
+    exit 1
+  fi
+
+  if [[ "$source_site_url" == "$LOCAL_SITE_URL" ]]; then
+    echo "Local site URLs already point to $LOCAL_SITE_URL"
+    return
+  fi
+
+  echo "Rewriting serialized site URLs to $LOCAL_SITE_URL"
+  local escaped_source="${source_site_url//\\/\\\\}"
+  escaped_source="${escaped_source//\'/\\\'}"
+  local escaped_target="${LOCAL_SITE_URL//\\/\\\\}"
+  escaped_target="${escaped_target//\'/\\\'}"
+
+  wordpress_php "
+function project_b_recursive_replace_urls(\$value, \$from, \$to) {
+    if (is_array(\$value)) {
+        foreach (\$value as \$key => \$item) {
+            \$value[\$key] = project_b_recursive_replace_urls(\$item, \$from, \$to);
+        }
+        return \$value;
+    }
+
+    if (is_object(\$value)) {
+        foreach (\$value as \$key => \$item) {
+            \$value->\$key = project_b_recursive_replace_urls(\$item, \$from, \$to);
+        }
+        return \$value;
+    }
+
+    if (is_string(\$value)) {
+        return str_replace(\$from, \$to, \$value);
+    }
+
+    return \$value;
+}
+
+function project_b_replace_urls_in_table(\$table, \$from, \$to) {
+    global \$wpdb;
+
+    \$columns = \$wpdb->get_results(\"SHOW COLUMNS FROM {\$table}\", ARRAY_A);
+    \$text_columns = array();
+    \$primary_keys = array();
+
+    foreach (\$columns as \$column) {
+        \$type = strtolower((string) \$column['Type']);
+
+        if ('PRI' === \$column['Key']) {
+            \$primary_keys[] = \$column['Field'];
+        }
+
+        if (false !== strpos(\$type, 'char') || false !== strpos(\$type, 'text')) {
+            \$text_columns[] = \$column['Field'];
+        }
+    }
+
+    if (empty(\$text_columns) || empty(\$primary_keys)) {
+        return;
+    }
+
+    \$select_columns = array_merge(\$primary_keys, \$text_columns);
+    \$rows = \$wpdb->get_results(\"SELECT \" . implode(', ', array_map(fn(\$col) => \"\\\"\`\$col\`\\\"\", \$select_columns)) . \" FROM \`{\$table}\`\", ARRAY_A);
+
+    foreach (\$rows as \$row) {
+        \$updates = array();
+
+        foreach (\$text_columns as \$column) {
+            if ('guid' === \$column && \$table === \$wpdb->posts) {
+                continue;
+            }
+
+            \$current = \$row[\$column];
+            \$decoded = maybe_unserialize(\$current);
+            \$updated = is_string(\$decoded) || is_array(\$decoded) || is_object(\$decoded)
+                ? project_b_recursive_replace_urls(\$decoded, \$from, \$to)
+                : \$decoded;
+            \$serialized = maybe_serialize(\$updated);
+
+            if ((string) \$serialized !== (string) \$current) {
+                \$updates[\$column] = \$serialized;
+            }
+        }
+
+        if (empty(\$updates)) {
+            continue;
+        }
+
+        \$where = array();
+        foreach (\$primary_keys as \$primary_key) {
+            \$where[\$primary_key] = \$row[\$primary_key];
+        }
+
+        \$wpdb->update(\$table, \$updates, \$where);
+    }
+}
+
+\$from = '$escaped_source';
+\$to   = '$escaped_target';
+
+foreach (\$wpdb->tables('all') as \$table) {
+    if (! \$wpdb->get_var(\$wpdb->prepare('SHOW TABLES LIKE %s', \$table))) {
+        continue;
+    }
+
+    project_b_replace_urls_in_table(\$table, \$from, \$to);
+}
+
+update_option('home', \$to);
+update_option('siteurl', \$to);
+echo 'search-replace complete';
+" >/dev/null
+
+  echo "Local site URLs replaced: $source_site_url -> $LOCAL_SITE_URL"
 }
 
 case "$ACTION" in
@@ -90,7 +229,12 @@ case "$ACTION" in
     compose down
     sync_repo_overrides
     compose up -d
+    update_local_site_urls
     echo "Mac test site started at http://localhost:$PROJECT_B_TEST_PORT"
+    ;;
+  repair-urls)
+    require_docker
+    update_local_site_urls
     ;;
   down)
     require_docker
@@ -114,10 +258,10 @@ case "$ACTION" in
       echo "Usage: tools/local-test-site-mac.sh wp plugin list" >&2
       exit 1
     fi
-    docker exec -i destever-mac-test-wordpress wp --allow-root "$@"
+    wp_cli "$@"
     ;;
   *)
-    echo "Usage: $0 {sync|up|down|restart|logs|status|wp}" >&2
+    echo "Usage: $0 {sync|up|down|restart|logs|status|wp|repair-urls}" >&2
     exit 1
     ;;
 esac
