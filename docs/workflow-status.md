@@ -105,8 +105,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\sync-theme-to-live.ps1
 
 1. Work only from `/Users/yien/Documents/work/destever-source`.
 2. Do not edit the CloudMounter/Synology mount directly except for emergency recovery.
-3. Use the same rule: pull first, commit and push after changes.
-4. The repository remote must stay on the personal alias:
+3. Use the external-drive test runtime at `/Volumes/KY 외장하드/SynologyDrive/04. 프로젝트/Codex/Destever test`.
+4. Test locally with `./tools/local-test-site-mac.sh up` before committing deployment-sensitive changes.
+5. Use the same rule: pull first, commit and push after changes.
+6. The repository remote must stay on the personal alias:
    `git@github-personal:yienshsss/destever.git`
 
 ## Synology deployment rule

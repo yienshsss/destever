@@ -68,3 +68,15 @@ WP-CLI runs successfully, but PHP 8.5.5 currently emits a deprecation warning fr
 - Do not use `/Users/yien/Library/CloudStorage/CloudMounter-NAS/docker/destever` as a Git working copy.
 - Start each work session with `git pull`.
 - Finish each work session with `git add -A`, `git commit`, and `git push`.
+
+### Mac test runtime
+
+- Added a Mac test runtime path:
+  `/Volumes/KY 외장하드/SynologyDrive/04. 프로젝트/Codex/Destever test`
+- Added Mac test compose file:
+  `docker/compose.macos-test.yml`
+- Added Mac test script:
+  `tools/local-test-site-mac.sh`
+- Intended local test URL:
+  `http://localhost:8161`
+- Docker Desktop for Mac is required before the test containers can be started.
