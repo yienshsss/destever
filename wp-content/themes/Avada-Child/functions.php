@@ -489,6 +489,32 @@ function project_b_get_member_only_page_slugs() {
     );
 }
 
+function project_b_get_member_private_category_ids() {
+    $ids = array();
+
+    foreach ( project_b_get_member_only_category_slugs() as $slug ) {
+        $term = get_category_by_slug( $slug );
+
+        if ( ! ( $term instanceof WP_Term ) ) {
+            continue;
+        }
+
+        $ids[] = (int) $term->term_id;
+
+        $children = get_term_children( $term->term_id, 'category' );
+
+        if ( ! is_wp_error( $children ) && ! empty( $children ) ) {
+            $ids = array_merge( $ids, array_map( 'intval', $children ) );
+        }
+    }
+
+    return array_values( array_unique( array_filter( $ids ) ) );
+}
+
+function project_b_can_view_member_private_content() {
+    return project_b_can_view_member_menu();
+}
+
 function project_b_enforce_member_only_sections() {
     if ( is_admin() || project_b_can_view_member_menu() ) {
         return;
