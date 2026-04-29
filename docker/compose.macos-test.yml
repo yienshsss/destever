@@ -26,9 +26,6 @@ services:
         define('WP_DISABLE_FATAL_ERROR_HANDLER', true);
     volumes:
       - ${PROJECT_B_TEST_ROOT}/wp-content:/var/www/html/wp-content
-      - ${PROJECT_B_LIVE_WP_CONTENT}/plugins:/var/www/html/wp-content/plugins:ro
-      - ${PROJECT_B_LIVE_WP_CONTENT}/themes/Avada:/var/www/html/wp-content/themes/Avada:ro
-      - ${PROJECT_B_LIVE_WP_CONTENT}/languages:/var/www/html/wp-content/languages:ro
 
   db:
     image: mariadb:11

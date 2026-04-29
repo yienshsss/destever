@@ -68,12 +68,15 @@ http://localhost:8161
 Mac-specific notes:
 
 - Docker Desktop for Mac must be installed and running before `up`, `status`, `logs`, `down`, or `wp`.
-- The `sync` action can prepare files without Docker.
+- The `sync` action overlays Git-managed files into the external-drive test runtime without Docker.
 - Runtime test files stay on the external drive, not inside the Git clone.
-- The script copies live DB data from:
-  `/Users/yien/Library/CloudStorage/CloudMounter-NAS/docker/destever`
-- It then copies Git-managed `wp-content` from the clone onto the test runtime.
-- On Mac, plugins, languages, and the Avada parent theme are mounted read-only from the live CloudMounter path. This avoids copying thousands of plugin files through CloudMounter while still testing the Git-managed child theme and mu-plugins in isolation.
+- The Mac test runtime must already contain a full test snapshot under the external-drive folder:
+  - `db/`
+  - `wp-content/`
+- At minimum, that `wp-content/` snapshot must include the Avada parent theme and active plugins such as Fusion Builder.
+- The script does not read from the CloudMounter/NAS live mount.
+- The script copies only Git-managed `wp-content` files from the clone onto the external-drive test runtime.
+- The Mac test script removes the Redis `object-cache.php` drop-in from the test runtime so the local test site is not coupled to live Redis state.
 
 ## Mac Promotion Workflow
 

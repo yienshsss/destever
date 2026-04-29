@@ -12,9 +12,6 @@ LOCAL_WP_CONTENT="$TEST_ROOT/wp-content"
 LOCAL_DB_ROOT="$TEST_ROOT/db"
 LOCAL_REDIS_ROOT="$TEST_ROOT/redis"
 REPO_WP_CONTENT="$REPO_ROOT/wp-content"
-LIVE_ROOT="${PROJECT_B_LIVE_ROOT:-/Users/yien/Library/CloudStorage/CloudMounter-NAS/docker/destever}"
-LIVE_WP_CONTENT="$LIVE_ROOT/wp-content"
-LIVE_DB_ROOT="$LIVE_ROOT/db"
 PROJECT_B_TEST_PORT="${PROJECT_B_TEST_PORT:-8161}"
 
 ensure_env() {
@@ -29,7 +26,6 @@ MYSQL_ROOT_PASSWORD=change-me-too
 WORDPRESS_DEBUG=0
 PROJECT_B_TEST_PORT=$PROJECT_B_TEST_PORT
 PROJECT_B_TEST_ROOT=$TEST_ROOT
-PROJECT_B_LIVE_WP_CONTENT=$LIVE_WP_CONTENT
 EOF
   fi
 }
@@ -41,59 +37,58 @@ require_docker() {
   fi
 }
 
-sync_live_wp_content() {
-  if [[ ! -d "$LIVE_WP_CONTENT" ]]; then
-    echo "Live wp-content path not found: $LIVE_WP_CONTENT" >&2
+check_test_runtime() {
+  if [[ ! -d "$LOCAL_WP_CONTENT" ]]; then
+    echo "Test wp-content path not found: $LOCAL_WP_CONTENT" >&2
+    echo "Create or copy a full WordPress wp-content snapshot into the external-drive test folder first." >&2
     exit 1
   fi
 
-  mkdir -p "$LOCAL_WP_CONTENT"
-  # Do not copy plugins, languages, uploads, or the parent theme through
-  # CloudMounter. The compose file mounts those live files read-only.
-  mkdir -p "$LOCAL_WP_CONTENT/themes" "$LOCAL_WP_CONTENT/mu-plugins"
+  if [[ ! -d "$LOCAL_DB_ROOT" ]]; then
+    echo "Test DB path not found: $LOCAL_DB_ROOT" >&2
+    echo "Create or copy a DB snapshot into the external-drive test folder first." >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$LOCAL_WP_CONTENT/themes/Avada/functions.php" ]]; then
+    echo "Avada parent theme is incomplete in the external-drive test runtime." >&2
+    echo "Missing: $LOCAL_WP_CONTENT/themes/Avada/functions.php" >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$LOCAL_WP_CONTENT/plugins/fusion-builder/inc/bootstrap.php" ]]; then
+    echo "Fusion Builder plugin is incomplete in the external-drive test runtime." >&2
+    echo "Missing: $LOCAL_WP_CONTENT/plugins/fusion-builder/inc/bootstrap.php" >&2
+    exit 1
+  fi
 }
 
 sync_repo_overrides() {
-  if [[ ! -d "$REPO_WP_CONTENT" ]]; then
-    echo "Repo wp-content path not found: $REPO_WP_CONTENT" >&2
-    exit 1
-  fi
-
+  check_test_runtime
   mkdir -p "$LOCAL_WP_CONTENT"
   rsync -rlt "$REPO_WP_CONTENT/" "$LOCAL_WP_CONTENT/"
-}
 
-sync_live_db_data() {
-  if [[ ! -d "$LIVE_DB_ROOT" ]]; then
-    echo "Live db path not found: $LIVE_DB_ROOT" >&2
-    exit 1
-  fi
-
-  mkdir -p "$LOCAL_DB_ROOT"
-  rsync -rlt --delete "$LIVE_DB_ROOT/" "$LOCAL_DB_ROOT/"
+  # Keep the test runtime independent from any live Redis drop-in.
+  rm -f "$LOCAL_WP_CONTENT/object-cache.php"
 }
 
 compose() {
   ensure_env
-  PROJECT_B_TEST_ROOT="$TEST_ROOT" PROJECT_B_TEST_PORT="$PROJECT_B_TEST_PORT" PROJECT_B_LIVE_WP_CONTENT="$LIVE_WP_CONTENT" \
+  PROJECT_B_TEST_ROOT="$TEST_ROOT" PROJECT_B_TEST_PORT="$PROJECT_B_TEST_PORT" \
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
 case "$ACTION" in
   sync)
     ensure_env
-    sync_live_wp_content
     sync_repo_overrides
-    sync_live_db_data
-    echo "Mac test wp-content and db synced into: $TEST_ROOT"
+    echo "Git-managed wp-content overrides synced into external test runtime: $TEST_ROOT"
     ;;
   up)
     require_docker
     ensure_env
     compose down
-    sync_live_wp_content
     sync_repo_overrides
-    sync_live_db_data
     compose up -d
     echo "Mac test site started at http://localhost:$PROJECT_B_TEST_PORT"
     ;;
