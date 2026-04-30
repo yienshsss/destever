@@ -289,14 +289,20 @@
 
 		<div class="pv-menu-list">
 			<?php
-$user_cats = [
-    'BLOG' => ['전체', '잡상노트', '일상', '캐나다 워홀', 'Done List'],
-    'REVIEW' => ['맛집', '영화 드라마', '전시', '책', '게임', 'IT'],
-    'TRAVEL' => ['전체', '2025', '2024', '2023'],
-    'PROS' => ['개인작'],
-					'LOG' => ['커뮤로그', '개인 연성', '그림 연습'],
-					'OC' => ['전체', '자캐 커플', '커뮤 로그 백업', '그 외'],
+				$can_view_member_menu = function_exists( 'project_b_can_view_member_menu' ) && project_b_can_view_member_menu();
+
+				$user_cats = [
+					'BLOG'   => [ '전체', '잡상노트', '일상', '캐나다 워홀', 'Done List' ],
+					'REVIEW' => [ '맛집', '영화 드라마', '전시', '책', '게임', 'IT' ],
+					'TRAVEL' => [ '전체', '2025', '2024', '2023' ],
+					'PROS'   => [ '개인작' ],
+					'LOG'    => [ '커뮤로그', '개인 연성', '그림 연습' ],
+					'OC'     => [ '전체', '자캐 커플', '커뮤 로그 백업', '그 외' ],
 				];
+
+				if ( $can_view_member_menu ) {
+					$user_cats['PROS'][] = '커미션 / 리퀘';
+				}
 
 				$user_cats['PROS'][] = '연재';
 
@@ -359,6 +365,13 @@ $user_cats = [
 									$oc_etc_term = get_category_by_slug('oc-etc');
 									$sub_link = $oc_etc_term ? get_category_link($oc_etc_term) : '#';
 								}
+							}
+						} elseif ('PROS' === $cat_key && '커미션 / 리퀘' === $sub) {
+							if (function_exists('project_b_menu_url')) {
+								$sub_link = project_b_menu_url('category', 'commission-request');
+							} else {
+								$commission_term = get_category_by_slug('commission-request');
+								$sub_link = $commission_term ? get_category_link($commission_term) : '#';
 							}
 						} elseif ('PROS' === $cat_key && '연재' === $sub) {
 							if (function_exists('project_b_menu_url')) {

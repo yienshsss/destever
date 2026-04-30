@@ -178,6 +178,8 @@ if ( 'blog' === $title_cat->slug && function_exists( 'project_b_get_blog_board_t
 	$sub_cats = project_b_get_blog_board_terms();
 }
 
+$show_blog_board_thumbs = ! $is_done_list_view && 'blog' === $title_cat->slug;
+
 $landing_config = function_exists( 'project_b_deep_menu_landing_config' ) ? project_b_deep_menu_landing_config() : array();
 $board_all_url  = get_category_link( $title_cat );
 
@@ -619,6 +621,10 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		border-bottom: 1px solid rgba(17, 17, 17, 0.12);
 	}
 
+	.pb-board__row.pb-board__row--with-thumb {
+		grid-template-columns: 130px 90px minmax(0, 1fr) 160px;
+	}
+
 	.pb-board__row:hover {
 		background: rgba(255, 255, 255, 0.58);
 	}
@@ -660,6 +666,28 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		text-transform: uppercase;
 		text-align: right;
 		color: rgba(17, 17, 17, 0.72);
+	}
+
+	.pb-board__thumb {
+		width: 90px;
+		height: 90px;
+		border-radius: 10px;
+		overflow: hidden;
+		flex-shrink: 0;
+		background: #ddd6c8;
+	}
+
+	.pb-board__thumb img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.pb-board__thumb-fallback {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, #e8e4dc, #c8c2b8);
 	}
 
 	.pb-done {
@@ -1132,6 +1160,11 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 			padding: 16px 0;
 		}
 
+		.pb-board__row.pb-board__row--with-thumb .pb-board__thumb {
+			width: 68px;
+			height: 68px;
+		}
+
 		.pb-board__toolbar {
 			align-items: stretch;
 		}
@@ -1502,8 +1535,24 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 						$excerpt   = has_excerpt() ? get_the_excerpt() : wp_trim_words( wp_strip_all_tags( get_the_content() ), 20, '' );
 						$post_cats = get_the_category();
 						?>
-						<a class="pb-board__row" href="<?php the_permalink(); ?>">
+						<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php the_permalink(); ?>">
 							<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d' ) ); ?></div>
+							<?php if ( $show_blog_board_thumbs ) : ?>
+								<?php
+								$thumb_url = function_exists( 'project_b_get_post_preview_image_url' )
+									? project_b_get_post_preview_image_url( get_the_ID(), 'thumbnail' )
+									: get_the_post_thumbnail_url( get_the_ID(), 'thumbnail' );
+								?>
+								<div class="pb-board__thumb">
+									<?php if ( $thumb_url ) : ?>
+										<img src="<?php echo esc_url( $thumb_url ); ?>"
+											alt="<?php the_title_attribute(); ?>"
+											loading="lazy">
+									<?php else : ?>
+										<div class="pb-board__thumb-fallback"></div>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 							<div class="pb-board__main">
 								<h2 class="pb-board__post-title"><?php the_title(); ?></h2>
 								<?php if ( $excerpt ) : ?>
@@ -1518,8 +1567,24 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 						$excerpt   = $injected_post->post_excerpt ? $injected_post->post_excerpt : wp_trim_words( wp_strip_all_tags( $injected_post->post_content ), 20, '' );
 						$post_cats = get_the_category( $injected_post->ID );
 						?>
-						<a class="pb-board__row" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+						<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
 							<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d', $injected_post ) ); ?></div>
+							<?php if ( $show_blog_board_thumbs ) : ?>
+								<?php
+								$thumb_url = function_exists( 'project_b_get_post_preview_image_url' )
+									? project_b_get_post_preview_image_url( $injected_post->ID, 'thumbnail' )
+									: get_the_post_thumbnail_url( $injected_post->ID, 'thumbnail' );
+								?>
+								<div class="pb-board__thumb">
+									<?php if ( $thumb_url ) : ?>
+										<img src="<?php echo esc_url( $thumb_url ); ?>"
+											alt="<?php echo esc_attr( get_the_title( $injected_post ) ); ?>"
+											loading="lazy">
+									<?php else : ?>
+										<div class="pb-board__thumb-fallback"></div>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 							<div class="pb-board__main">
 								<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
 								<?php if ( $excerpt ) : ?>
@@ -1536,8 +1601,24 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 							$excerpt   = $injected_post->post_excerpt ? $injected_post->post_excerpt : wp_trim_words( wp_strip_all_tags( $injected_post->post_content ), 20, '' );
 							$post_cats = get_the_category( $injected_post->ID );
 							?>
-							<a class="pb-board__row" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+							<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
 								<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d', $injected_post ) ); ?></div>
+								<?php if ( $show_blog_board_thumbs ) : ?>
+									<?php
+									$thumb_url = function_exists( 'project_b_get_post_preview_image_url' )
+										? project_b_get_post_preview_image_url( $injected_post->ID, 'thumbnail' )
+										: get_the_post_thumbnail_url( $injected_post->ID, 'thumbnail' );
+									?>
+									<div class="pb-board__thumb">
+										<?php if ( $thumb_url ) : ?>
+											<img src="<?php echo esc_url( $thumb_url ); ?>"
+												alt="<?php echo esc_attr( get_the_title( $injected_post ) ); ?>"
+												loading="lazy">
+										<?php else : ?>
+											<div class="pb-board__thumb-fallback"></div>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
 								<div class="pb-board__main">
 									<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
 									<?php if ( $excerpt ) : ?>

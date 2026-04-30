@@ -941,6 +941,12 @@ function project_b_get_board_category_root_ids() {
         $root_ids[] = (int) $pros->term_id;
     }
 
+    $blog = get_category_by_slug( 'blog' );
+
+    if ( $blog instanceof WP_Term ) {
+        $root_ids[] = (int) $blog->term_id;
+    }
+
     return array_values( array_unique( array_filter( $root_ids ) ) );
 }
 
