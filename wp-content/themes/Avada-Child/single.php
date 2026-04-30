@@ -118,6 +118,47 @@ get_header();
 		margin-bottom: 18px;
 	}
 
+	.pb-single__actions {
+		width: min(760px, 100%);
+		margin: 0 auto 18px;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 8px;
+	}
+
+	.pb-single__action-btn {
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 1px solid rgba(17, 17, 17, 0.08);
+		border-radius: 999px;
+		background: rgba(17, 17, 17, 0.06);
+		color: #111;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition: background .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease, transform .2s ease;
+	}
+
+	.pb-single__action-btn:hover:not(:disabled) {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+		transform: translateY(-1px);
+	}
+
+	.pb-single__action-btn svg {
+		width: 19px;
+		height: 19px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 1.9;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
 	.pb-single__kicker,
 	.pb-single__date {
 		display: inline-flex;
@@ -241,6 +282,34 @@ get_header();
 		font-style: italic !important;
 	}
 
+	.pb-single__content u {
+		text-decoration: underline !important;
+	}
+
+	.pb-single__content .ql-align-center {
+		text-align: center !important;
+	}
+
+	.pb-single__content .ql-align-right {
+		text-align: right !important;
+	}
+
+	.pb-single__content .ql-align-justify {
+		text-align: justify !important;
+	}
+
+	.pb-single__content .ql-size-small {
+		font-size: 0.85em !important;
+	}
+
+	.pb-single__content .ql-size-large {
+		font-size: 1.35em !important;
+	}
+
+	.pb-single__content .ql-size-huge {
+		font-size: 1.8em !important;
+	}
+
 	.pb-single__content blockquote {
 		margin: 2.1em 0;
 		padding: 0 0 0 1.15em;
@@ -356,6 +425,111 @@ get_header();
 		cursor: pointer;
 	}
 
+	.pb-editor-modal[hidden] {
+		display: none !important;
+	}
+
+	.pb-editor-modal {
+		position: fixed;
+		inset: 0;
+		z-index: 5000;
+	}
+
+	.pb-editor-modal__backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgba(17, 17, 17, 0.45);
+		backdrop-filter: blur(6px);
+	}
+
+	.pb-editor-modal__panel {
+		position: relative;
+		width: min(920px, calc(100vw - 32px));
+		max-height: calc(100vh - 32px);
+		margin: 16px auto;
+		padding: 20px;
+		border-radius: 28px;
+		background: #f8f6ef;
+		box-shadow: 0 28px 70px rgba(17, 17, 17, 0.22);
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		overflow: hidden;
+	}
+
+	.pb-editor-modal__title {
+		width: 100%;
+		min-height: 58px;
+		padding: 0 18px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 18px;
+		background: rgba(255, 255, 255, 0.88);
+		font-size: 18px;
+		font-weight: 800;
+		color: #111;
+		outline: none;
+	}
+
+	#pb-editor-toolbar {
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 18px 18px 0 0;
+		background: rgba(255, 255, 255, 0.88);
+	}
+
+	#pb-editor-body {
+		flex: 1;
+		min-height: 340px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-top: 0;
+		border-radius: 0 0 18px 18px;
+		background: rgba(255, 255, 255, 0.94);
+		overflow: auto;
+	}
+
+	#pb-editor-body .ql-editor {
+		min-height: 340px;
+		font-size: 16px;
+		line-height: 1.72;
+		color: #111;
+	}
+
+	.pb-editor-modal__footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+	}
+
+	.pb-editor-modal__footer button {
+		min-height: 44px;
+		padding: 0 18px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.88);
+		font-size: 14px;
+		font-weight: 800;
+		color: #111;
+		cursor: pointer;
+	}
+
+	.pb-editor-modal__footer button:hover:not(:disabled) {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+	}
+
+	.pb-editor-modal__footer button:disabled,
+	.pb-single__action-btn:disabled {
+		opacity: 0.6;
+		cursor: wait;
+	}
+
+	.pb-editor-modal__status {
+		min-height: 20px;
+		font-size: 13px;
+		font-weight: 700;
+		color: rgba(17, 17, 17, 0.62);
+	}
+
 	@media (max-width: 960px) {
 		.pb-single__hero {
 			padding-inline: 22px;
@@ -416,6 +590,11 @@ get_header();
 			margin-bottom: 14px;
 		}
 
+		.pb-single__actions {
+			width: 100%;
+			margin-bottom: 14px;
+		}
+
 		.pb-single__kicker,
 		.pb-single__date {
 			font-size: 11px;
@@ -473,6 +652,23 @@ get_header();
 					</div>
 				</header>
 
+				<?php if ( is_user_logged_in() && current_user_can( 'edit_post', get_the_ID() ) ) : ?>
+					<div class="pb-single__actions">
+						<button
+							class="pb-single__action-btn pb-single__edit-btn"
+							type="button"
+							data-post-id="<?php echo esc_attr( get_the_ID() ); ?>"
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+							aria-label="글 수정"
+						>
+							<svg viewBox="0 0 24 24" aria-hidden="true">
+								<path d="M12 20h9"></path>
+								<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+							</svg>
+						</button>
+					</div>
+				<?php endif; ?>
+
 				<div class="pb-single__divider"></div>
 
 				<div class="pb-single__content">
@@ -526,6 +722,222 @@ get_header();
 		<?php endwhile; ?>
 	</div>
 </main>
+
+<?php if ( is_singular( 'post' ) && is_user_logged_in() && current_user_can( 'edit_post', get_the_ID() ) ) : ?>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<div id="pb-editor-modal" class="pb-editor-modal" hidden>
+	<div class="pb-editor-modal__backdrop"></div>
+	<div class="pb-editor-modal__panel" role="dialog" aria-modal="true" aria-labelledby="pb-editor-title">
+		<input id="pb-editor-title" class="pb-editor-modal__title" type="text" placeholder="제목">
+		<div id="pb-editor-toolbar">
+			<span class="ql-formats">
+				<select class="ql-size">
+					<option value="small">Small</option>
+					<option selected>Normal</option>
+					<option value="large">Large</option>
+					<option value="huge">Huge</option>
+				</select>
+			</span>
+			<span class="ql-formats">
+				<button class="ql-bold" type="button"></button>
+				<button class="ql-italic" type="button"></button>
+				<button class="ql-underline" type="button"></button>
+				<button class="ql-strike" type="button"></button>
+			</span>
+			<span class="ql-formats">
+				<button class="ql-align" value="" type="button"></button>
+				<button class="ql-align" value="center" type="button"></button>
+				<button class="ql-align" value="right" type="button"></button>
+			</span>
+		</div>
+		<div id="pb-editor-body"></div>
+		<div id="pb-editor-status" class="pb-editor-modal__status" aria-live="polite"></div>
+		<div class="pb-editor-modal__footer">
+			<button id="pb-editor-cancel" type="button">취소</button>
+			<button id="pb-editor-save" type="button">저장</button>
+		</div>
+	</div>
+</div>
+<script>
+(function () {
+	const editButton = document.querySelector('.pb-single__edit-btn');
+	const modal = document.getElementById('pb-editor-modal');
+	const modalBackdrop = modal ? modal.querySelector('.pb-editor-modal__backdrop') : null;
+	const titleInput = document.getElementById('pb-editor-title');
+	const saveButton = document.getElementById('pb-editor-save');
+	const cancelButton = document.getElementById('pb-editor-cancel');
+	const statusNode = document.getElementById('pb-editor-status');
+	const contentNode = document.querySelector('.pb-single__content');
+	const titleNode = document.querySelector('.pb-single__title');
+	const dekNode = document.querySelector('.pb-single__dek');
+	let quill = null;
+	let activePostId = '';
+	let activeNonce = '';
+
+	if (!editButton || !modal) {
+		return;
+	}
+
+	function setStatus(message) {
+		if (statusNode) {
+			statusNode.textContent = message || '';
+		}
+	}
+
+	function stripHtml(html) {
+		const temp = document.createElement('div');
+		temp.innerHTML = html;
+		return (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+	}
+
+	function ensureQuill() {
+		if (quill || !window.Quill) {
+			return !!quill;
+		}
+
+		quill = new window.Quill('#pb-editor-body', {
+			theme: 'snow',
+			modules: {
+				toolbar: '#pb-editor-toolbar'
+			}
+		});
+
+		return true;
+	}
+
+	function openModal() {
+		modal.hidden = false;
+		document.body.style.overflow = 'hidden';
+	}
+
+	function closeModal() {
+		modal.hidden = true;
+		document.body.style.overflow = '';
+		setStatus('');
+
+		if (saveButton) {
+			saveButton.disabled = false;
+			saveButton.textContent = '저장';
+		}
+	}
+
+	async function openEditor() {
+		activePostId = editButton.getAttribute('data-post-id') || '';
+		activeNonce = editButton.getAttribute('data-nonce') || '';
+
+		if (!activePostId || !activeNonce || !ensureQuill()) {
+			window.alert('에디터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+			return;
+		}
+
+		openModal();
+		setStatus('글을 불러오는 중...');
+		titleInput.value = '';
+		quill.setContents([]);
+
+		try {
+			const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(activePostId) + '?context=edit', {
+				headers: {
+					'X-WP-Nonce': activeNonce
+				},
+				credentials: 'same-origin'
+			});
+
+			if (!response.ok) {
+				throw new Error('load_failed');
+			}
+
+			const data = await response.json();
+			titleInput.value = data && data.title && typeof data.title.raw === 'string' ? data.title.raw : '';
+			quill.clipboard.dangerouslyPasteHTML(data && data.content && typeof data.content.raw === 'string' ? data.content.raw : '');
+			setStatus('');
+		} catch (error) {
+			closeModal();
+			window.alert('글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+		}
+	}
+
+	async function saveEditor() {
+		if (!activePostId || !activeNonce || !quill) {
+			return;
+		}
+
+		const title = titleInput.value.trim();
+		const content = quill.root.innerHTML;
+
+		if (!title) {
+			setStatus('제목을 입력해 주세요.');
+			titleInput.focus();
+			return;
+		}
+
+		saveButton.disabled = true;
+		saveButton.textContent = '저장 중';
+		setStatus('저장하는 중...');
+
+		try {
+			const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(activePostId), {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': activeNonce
+				},
+				credentials: 'same-origin',
+				body: JSON.stringify({
+					title: title,
+					content: content
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('save_failed');
+			}
+
+			if (titleNode) {
+				titleNode.textContent = title;
+			}
+
+			if (contentNode) {
+				contentNode.innerHTML = content;
+			}
+
+			if (dekNode) {
+				const plain = stripHtml(content);
+				dekNode.textContent = plain.length > 140 ? plain.slice(0, 140).trim() + '...' : plain;
+			}
+
+			setStatus('');
+			closeModal();
+		} catch (error) {
+			saveButton.disabled = false;
+			saveButton.textContent = '저장';
+			setStatus('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+		}
+	}
+
+	editButton.addEventListener('click', openEditor);
+
+	if (modalBackdrop) {
+		modalBackdrop.addEventListener('click', closeModal);
+	}
+
+	if (cancelButton) {
+		cancelButton.addEventListener('click', closeModal);
+	}
+
+	if (saveButton) {
+		saveButton.addEventListener('click', saveEditor);
+	}
+
+	document.addEventListener('keydown', function (event) {
+		if (event.key === 'Escape' && !modal.hidden) {
+			closeModal();
+		}
+	});
+})();
+</script>
+<?php endif; ?>
 
 <script>
 	document.addEventListener('DOMContentLoaded', function () {

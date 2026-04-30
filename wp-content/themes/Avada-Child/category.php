@@ -458,6 +458,26 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		}
 	}
 }
+
+$can_create_board_post = is_user_logged_in() && current_user_can( 'edit_posts' );
+
+if ( ! $can_create_board_post && is_user_logged_in() ) {
+	foreach ( (array) $display_query->posts as $board_post ) {
+		if ( $board_post instanceof WP_Post && current_user_can( 'edit_post', $board_post->ID ) ) {
+			$can_create_board_post = true;
+			break;
+		}
+	}
+
+	if ( ! $can_create_board_post ) {
+		foreach ( $injected_posts as $injected_post ) {
+			if ( $injected_post instanceof WP_Post && current_user_can( 'edit_post', $injected_post->ID ) ) {
+				$can_create_board_post = true;
+				break;
+			}
+		}
+	}
+}
 ?>
 
 <style>
@@ -572,6 +592,19 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+
+	.pb-board__primary {
+		display: flex;
+		flex: 1;
+		min-width: min(320px, 100%);
+	}
+
+	.pb-board__secondary {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		margin-left: auto;
 	}
 
 	.pb-board__button,
@@ -1316,8 +1349,15 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		}
 
 		.pb-board__actions,
+		.pb-board__primary,
+		.pb-board__secondary,
 		.pb-board__search-form {
 			width: 100%;
+		}
+
+		.pb-board__secondary {
+			justify-content: flex-start;
+			margin-left: 0;
 		}
 
 		.pb-board__search-input {
@@ -1663,15 +1703,24 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 			</section>
 		<?php else : ?>
 			<section class="pb-board__toolbar" aria-label="게시판 도구">
-				<div class="pb-board__actions">
-					<?php if ( function_exists( 'project_b_is_privileged_user' ) && project_b_is_privileged_user() ) : ?>
-						<a class="pb-board__button" href="<?php echo esc_url( admin_url( 'post-new.php' ) ); ?>">글쓰기</a>
-					<?php endif; ?>
+				<div class="pb-board__actions pb-board__primary">
 					<form class="pb-board__search-form" method="get" action="<?php echo esc_url( get_category_link( $current_cat ) ); ?>">
 						<input class="pb-board__search-input" type="search" name="s" value="<?php echo esc_attr( $current_search ); ?>" placeholder="글 찾기">
 						<button class="pb-board__button" type="submit">찾기</button>
 					</form>
 				</div>
+				<?php if ( $can_create_board_post ) : ?>
+					<div class="pb-board__secondary">
+						<button
+							class="pb-board__button pb-board__create-btn"
+							type="button"
+							data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+							data-category-id="<?php echo esc_attr( (string) $current_id ); ?>"
+						>
+							글쓰기
+						</button>
+					</div>
+				<?php endif; ?>
 			</section>
 
 			<section class="pb-board__table">
@@ -1908,6 +1957,7 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 			<span class="ql-formats">
 				<button class="ql-bold" type="button"></button>
 				<button class="ql-italic" type="button"></button>
+				<button class="ql-underline" type="button"></button>
 				<button class="ql-strike" type="button"></button>
 			</span>
 			<span class="ql-formats">
@@ -1936,10 +1986,14 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 	const saveButton = document.getElementById('pb-editor-save');
 	const cancelButton = document.getElementById('pb-editor-cancel');
 	const statusNode = document.getElementById('pb-editor-status');
+	const boardTable = document.querySelector('.pb-board__table');
+	const emptyNode = boardTable ? boardTable.querySelector('.pb-archive__empty') : null;
 	let quill = null;
+	let editorMode = 'edit';
 	let activePostId = '';
 	let activeNonce = '';
 	let activeRow = null;
+	let activeCategoryId = '';
 
 	function setStatus(message) {
 		if (statusNode) {
@@ -1997,9 +2051,11 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 
 		modal.hidden = true;
 		document.body.style.overflow = '';
+		editorMode = 'edit';
 		activePostId = '';
 		activeNonce = '';
 		activeRow = null;
+		activeCategoryId = '';
 		setStatus('');
 
 		if (titleInput) {
@@ -2013,6 +2069,88 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		if (saveButton) {
 			saveButton.disabled = false;
 			saveButton.textContent = '저장';
+		}
+	}
+
+	function getCurrentDateLabel() {
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = String(now.getMonth() + 1).padStart(2, '0');
+		const day = String(now.getDate()).padStart(2, '0');
+		return year + '. ' + month + '. ' + day;
+	}
+
+	function createActionButtons(postId, nonce) {
+		const actions = document.createElement('div');
+		actions.className = 'pb-board__row-actions';
+		actions.innerHTML =
+			'<button class="pb-board__action-btn pb-board__edit-btn" type="button" data-post-id="' + String(postId).replace(/"/g, '&quot;') + '" data-nonce="' + String(nonce).replace(/"/g, '&quot;') + '" aria-label="글 수정">' +
+				'<svg viewBox="0 0 24 24" aria-hidden="true">' +
+					'<path d="M12 20h9"></path>' +
+					'<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>' +
+				'</svg>' +
+			'</button>' +
+			'<button class="pb-board__action-btn pb-board__delete-btn" type="button" data-post-id="' + String(postId).replace(/"/g, '&quot;') + '" data-nonce="' + String(nonce).replace(/"/g, '&quot;') + '" aria-label="글 삭제">' +
+				'<svg viewBox="0 0 24 24" aria-hidden="true">' +
+					'<path d="M3 6h18"></path>' +
+					'<path d="M8 6V4h8v2"></path>' +
+					'<path d="M19 6l-1 14H6L5 6"></path>' +
+					'<path d="M10 11v6"></path>' +
+					'<path d="M14 11v6"></path>' +
+				'</svg>' +
+			'</button>';
+		bindRowActions(actions);
+		return actions;
+	}
+
+	function createBoardRow(postId, nonce, title, contentHtml, permalink) {
+		const row = document.createElement('div');
+		const excerpt = buildExcerpt(contentHtml);
+		row.className = 'pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>';
+		row.setAttribute('data-post-id', postId);
+		row.innerHTML =
+			'<div class="pb-board__date">' + getCurrentDateLabel() + '</div>' +
+			<?php if ( $show_blog_board_thumbs ) : ?>
+			'<div class="pb-board__thumb"><div class="pb-board__thumb-fallback"></div></div>' +
+			<?php endif; ?>
+			'<div class="pb-board__main">' +
+				'<a class="pb-board__main-link" href="' + String(permalink || '#').replace(/"/g, '&quot;') + '">' +
+					'<h2 class="pb-board__post-title"></h2>' +
+				'</a>' +
+			'</div>';
+
+		const titleNode = row.querySelector('.pb-board__post-title');
+		const linkNode = row.querySelector('.pb-board__main-link');
+
+		if (titleNode) {
+			titleNode.textContent = title;
+		}
+
+		if (excerpt && linkNode) {
+			const excerptNode = document.createElement('div');
+			excerptNode.className = 'pb-board__excerpt';
+			excerptNode.textContent = excerpt;
+			linkNode.appendChild(excerptNode);
+		}
+
+		row.appendChild(createActionButtons(postId, nonce));
+		return row;
+	}
+
+	function prependBoardRow(row) {
+		if (!boardTable || !row) {
+			return;
+		}
+
+		const firstRow = boardTable.querySelector('.pb-board__row');
+		if (emptyNode && emptyNode.parentNode === boardTable) {
+			emptyNode.remove();
+		}
+
+		if (firstRow) {
+			boardTable.insertBefore(row, firstRow);
+		} else {
+			boardTable.appendChild(row);
 		}
 	}
 
@@ -2033,6 +2171,7 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		activePostId = postId;
 		activeNonce = nonce;
 		activeRow = row;
+		editorMode = 'edit';
 		openModal();
 		setStatus('글을 불러오는 중...');
 
@@ -2068,8 +2207,38 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		}
 	}
 
+	function openCreateEditor(button) {
+		const nonce = button.getAttribute('data-nonce');
+		const categoryId = button.getAttribute('data-category-id');
+
+		if (!nonce || !categoryId) {
+			return;
+		}
+
+		if (!ensureQuill()) {
+			window.alert('에디터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+			return;
+		}
+
+		editorMode = 'create';
+		activePostId = '';
+		activeNonce = nonce;
+		activeRow = null;
+		activeCategoryId = categoryId;
+
+		openModal();
+		setStatus('');
+
+		if (titleInput) {
+			titleInput.value = '';
+			titleInput.focus();
+		}
+
+		quill.setContents([]);
+	}
+
 	async function saveEditor() {
-		if (!activePostId || !activeNonce || !activeRow || !quill) {
+		if (!activeNonce || !quill) {
 			return;
 		}
 
@@ -2089,21 +2258,49 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		setStatus('저장하는 중...');
 
 		try {
-			const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(activePostId), {
+			const isCreateMode = editorMode === 'create';
+			const endpoint = isCreateMode
+				? '/wp-json/wp/v2/posts'
+				: '/wp-json/wp/v2/posts/' + encodeURIComponent(activePostId);
+			const payload = {
+				title: title,
+				content: content
+			};
+
+			if (isCreateMode) {
+				payload.status = 'publish';
+				payload.categories = activeCategoryId ? [Number(activeCategoryId)] : [];
+			}
+
+			const response = await fetch(endpoint, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-WP-Nonce': activeNonce
 				},
 				credentials: 'same-origin',
-				body: JSON.stringify({
-					title: title,
-					content: content
-				})
+				body: JSON.stringify(payload)
 			});
 
 			if (!response.ok) {
 				throw new Error('save_failed');
+			}
+
+			const data = await response.json();
+
+			if (isCreateMode) {
+				const newRow = createBoardRow(
+					data && data.id ? data.id : '',
+					activeNonce,
+					title,
+					content,
+					data && data.link ? data.link : '#'
+				);
+
+				prependBoardRow(newRow);
+				setStatus('');
+				closeModal();
+				return;
 			}
 
 			const titleNode = activeRow.querySelector('.pb-board__post-title');
@@ -2145,45 +2342,74 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		});
 	});
 
-	document.querySelectorAll('.pb-board__delete-btn').forEach(function (button) {
-		button.addEventListener('click', async function () {
-			const postId = button.getAttribute('data-post-id');
-			const nonce = button.getAttribute('data-nonce');
-			const row = button.closest('.pb-board__row');
-
-			if (!postId || !nonce || !row) {
-				return;
-			}
-
-			if (!window.confirm('이 글을 삭제할까요?')) {
-				return;
-			}
-
-			const originalText = button.textContent;
-			button.disabled = true;
-			button.textContent = '삭제 중';
-
-			try {
-				const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(postId) + '?force=true', {
-					method: 'DELETE',
-					headers: {
-						'X-WP-Nonce': nonce
-					},
-					credentials: 'same-origin'
-				});
-
-				if (!response.ok) {
-					throw new Error('delete_failed');
-				}
-
-				row.remove();
-			} catch (error) {
-				button.disabled = false;
-				button.textContent = originalText;
-				window.alert('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-			}
+	document.querySelectorAll('.pb-board__create-btn').forEach(function (button) {
+		button.addEventListener('click', function () {
+			openCreateEditor(button);
 		});
 	});
+
+	function bindRowActions(root) {
+		if (!root) {
+			return;
+		}
+
+		root.querySelectorAll('.pb-board__edit-btn').forEach(function (button) {
+			if (button.dataset.pbBound === '1') {
+				return;
+			}
+
+			button.dataset.pbBound = '1';
+			button.addEventListener('click', function () {
+				openEditor(button);
+			});
+		});
+
+		root.querySelectorAll('.pb-board__delete-btn').forEach(function (button) {
+			if (button.dataset.pbBound === '1') {
+				return;
+			}
+
+			button.dataset.pbBound = '1';
+			button.addEventListener('click', async function () {
+				const postId = button.getAttribute('data-post-id');
+				const nonce = button.getAttribute('data-nonce');
+				const row = button.closest('.pb-board__row');
+
+				if (!postId || !nonce || !row) {
+					return;
+				}
+
+				if (!window.confirm('이 글을 삭제할까요?')) {
+					return;
+				}
+
+				const originalText = button.textContent;
+				button.disabled = true;
+
+				try {
+					const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(postId) + '?force=true', {
+						method: 'DELETE',
+						headers: {
+							'X-WP-Nonce': nonce
+						},
+						credentials: 'same-origin'
+					});
+
+					if (!response.ok) {
+						throw new Error('delete_failed');
+					}
+
+					row.remove();
+				} catch (error) {
+					button.disabled = false;
+					button.textContent = originalText;
+					window.alert('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+				}
+			});
+		});
+	}
+
+	bindRowActions(document);
 
 	if (modalBackdrop) {
 		modalBackdrop.addEventListener('click', closeModal);
