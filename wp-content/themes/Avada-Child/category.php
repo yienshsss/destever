@@ -640,6 +640,12 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		min-width: 0;
 	}
 
+	.pb-board__main-link {
+		display: block;
+		color: inherit;
+		text-decoration: none;
+	}
+
 	.pb-board__post-title {
 		margin: 0 0 6px;
 		font-size: 22px;
@@ -659,13 +665,153 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		text-overflow: ellipsis;
 	}
 
-	.pb-board__cat {
-		font-size: 12px;
+	.pb-board__row-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 8px;
+		align-self: end;
+	}
+
+	.pb-board__action-btn {
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 1px solid rgba(17, 17, 17, 0.08);
+		border-radius: 999px;
+		background: rgba(17, 17, 17, 0.06);
+		color: #111;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition: background .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease, transform .2s ease;
+	}
+
+	.pb-board__action-btn:hover:not(:disabled) {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+		transform: translateY(-1px);
+	}
+
+	.pb-board__action-btn:disabled {
+		opacity: 0.55;
+		cursor: wait;
+	}
+
+	.pb-board__action-btn svg {
+		width: 19px;
+		height: 19px;
+		stroke: currentColor;
+		fill: none;
+		stroke-width: 1.9;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.pb-editor-modal[hidden] {
+		display: none !important;
+	}
+
+	.pb-editor-modal {
+		position: fixed;
+		inset: 0;
+		z-index: 5000;
+	}
+
+	.pb-editor-modal__backdrop {
+		position: absolute;
+		inset: 0;
+		background: rgba(17, 17, 17, 0.45);
+		backdrop-filter: blur(6px);
+	}
+
+	.pb-editor-modal__panel {
+		position: relative;
+		width: min(920px, calc(100vw - 32px));
+		max-height: calc(100vh - 32px);
+		margin: 16px auto;
+		padding: 20px;
+		border-radius: 28px;
+		background: #f8f6ef;
+		box-shadow: 0 28px 70px rgba(17, 17, 17, 0.22);
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		overflow: hidden;
+	}
+
+	.pb-editor-modal__title {
+		width: 100%;
+		min-height: 58px;
+		padding: 0 18px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 18px;
+		background: rgba(255, 255, 255, 0.88);
+		font-size: 18px;
 		font-weight: 800;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		text-align: right;
-		color: rgba(17, 17, 17, 0.72);
+		color: #111;
+		outline: none;
+	}
+
+	#pb-editor-toolbar {
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 18px 18px 0 0;
+		background: rgba(255, 255, 255, 0.88);
+	}
+
+	#pb-editor-body {
+		flex: 1;
+		min-height: 340px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-top: 0;
+		border-radius: 0 0 18px 18px;
+		background: rgba(255, 255, 255, 0.94);
+		overflow: auto;
+	}
+
+	#pb-editor-body .ql-editor {
+		min-height: 340px;
+		font-size: 16px;
+		line-height: 1.72;
+		color: #111;
+	}
+
+	.pb-editor-modal__footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+	}
+
+	.pb-editor-modal__footer button {
+		min-height: 44px;
+		padding: 0 18px;
+		border: 1px solid rgba(17, 17, 17, 0.12);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.88);
+		font-size: 14px;
+		font-weight: 800;
+		color: #111;
+		cursor: pointer;
+	}
+
+	.pb-editor-modal__footer button:hover:not(:disabled) {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+	}
+
+	.pb-editor-modal__footer button:disabled {
+		opacity: 0.6;
+		cursor: wait;
+	}
+
+	.pb-editor-modal__status {
+		min-height: 20px;
+		font-size: 13px;
+		font-weight: 700;
+		color: rgba(17, 17, 17, 0.62);
 	}
 
 	.pb-board__thumb {
@@ -1178,8 +1324,9 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 			width: 100%;
 		}
 
-		.pb-board__cat {
-			text-align: left;
+		.pb-board__row-actions {
+			justify-content: flex-start;
+			align-self: start;
 		}
 
 		.pb-done__entry {
@@ -1534,8 +1681,9 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 						<?php
 						$excerpt   = has_excerpt() ? get_the_excerpt() : wp_trim_words( wp_strip_all_tags( get_the_content() ), 20, '' );
 						$post_cats = get_the_category();
+						$can_edit  = is_user_logged_in() && current_user_can( 'edit_post', get_the_ID() );
 						?>
-						<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php the_permalink(); ?>">
+						<div class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" data-post-id="<?php echo esc_attr( get_the_ID() ); ?>">
 							<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d' ) ); ?></div>
 							<?php if ( $show_blog_board_thumbs ) : ?>
 								<?php
@@ -1554,20 +1702,49 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 								</div>
 							<?php endif; ?>
 							<div class="pb-board__main">
-								<h2 class="pb-board__post-title"><?php the_title(); ?></h2>
-								<?php if ( $excerpt ) : ?>
-									<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+								<a class="pb-board__main-link" href="<?php the_permalink(); ?>">
+									<h2 class="pb-board__post-title"><?php the_title(); ?></h2>
+									<?php if ( $excerpt ) : ?>
+										<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+									<?php endif; ?>
+								</a>
+							</div>
+							<div class="pb-board__row-actions">
+								<?php if ( $can_edit ) : ?>
+									<button class="pb-board__action-btn pb-board__edit-btn"
+										type="button"
+										data-post-id="<?php echo esc_attr( get_the_ID() ); ?>"
+										data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+										aria-label="글 수정">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path d="M12 20h9"></path>
+											<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+										</svg>
+									</button>
+									<button class="pb-board__action-btn pb-board__delete-btn"
+										type="button"
+										data-post-id="<?php echo esc_attr( get_the_ID() ); ?>"
+										data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+										aria-label="글 삭제">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path d="M3 6h18"></path>
+											<path d="M8 6V4h8v2"></path>
+											<path d="M19 6l-1 14H6L5 6"></path>
+											<path d="M10 11v6"></path>
+											<path d="M14 11v6"></path>
+										</svg>
+									</button>
 								<?php endif; ?>
 							</div>
-							<div class="pb-board__cat"><?php echo ! empty( $post_cats ) ? esc_html( $post_cats[0]->name ) : ''; ?></div>
-						</a>
+						</div>
 					<?php endwhile; ?>
 					<?php foreach ( $injected_posts as $injected_post ) : ?>
 						<?php
 						$excerpt   = $injected_post->post_excerpt ? $injected_post->post_excerpt : wp_trim_words( wp_strip_all_tags( $injected_post->post_content ), 20, '' );
 						$post_cats = get_the_category( $injected_post->ID );
+						$can_edit  = is_user_logged_in() && current_user_can( 'edit_post', $injected_post->ID );
 						?>
-						<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+						<div class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>">
 							<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d', $injected_post ) ); ?></div>
 							<?php if ( $show_blog_board_thumbs ) : ?>
 								<?php
@@ -1586,13 +1763,41 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 								</div>
 							<?php endif; ?>
 							<div class="pb-board__main">
-								<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
-								<?php if ( $excerpt ) : ?>
-									<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+								<a class="pb-board__main-link" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+									<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
+									<?php if ( $excerpt ) : ?>
+										<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+									<?php endif; ?>
+								</a>
+							</div>
+							<div class="pb-board__row-actions">
+								<?php if ( $can_edit ) : ?>
+									<button class="pb-board__action-btn pb-board__edit-btn"
+										type="button"
+										data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>"
+										data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+										aria-label="글 수정">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path d="M12 20h9"></path>
+											<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+										</svg>
+									</button>
+									<button class="pb-board__action-btn pb-board__delete-btn"
+										type="button"
+										data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>"
+										data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+										aria-label="글 삭제">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path d="M3 6h18"></path>
+											<path d="M8 6V4h8v2"></path>
+											<path d="M19 6l-1 14H6L5 6"></path>
+											<path d="M10 11v6"></path>
+											<path d="M14 11v6"></path>
+										</svg>
+									</button>
 								<?php endif; ?>
 							</div>
-							<div class="pb-board__cat"><?php echo ! empty( $post_cats ) ? esc_html( $post_cats[0]->name ) : ''; ?></div>
-						</a>
+						</div>
 					<?php endforeach; ?>
 				<?php else : ?>
 					<?php if ( ! empty( $injected_posts ) ) : ?>
@@ -1600,8 +1805,9 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 							<?php
 							$excerpt   = $injected_post->post_excerpt ? $injected_post->post_excerpt : wp_trim_words( wp_strip_all_tags( $injected_post->post_content ), 20, '' );
 							$post_cats = get_the_category( $injected_post->ID );
+							$can_edit  = is_user_logged_in() && current_user_can( 'edit_post', $injected_post->ID );
 							?>
-							<a class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+							<div class="pb-board__row<?php echo $show_blog_board_thumbs ? ' pb-board__row--with-thumb' : ''; ?>" data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>">
 								<div class="pb-board__date"><?php echo esc_html( get_the_date( 'Y. m. d', $injected_post ) ); ?></div>
 								<?php if ( $show_blog_board_thumbs ) : ?>
 									<?php
@@ -1620,13 +1826,41 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 									</div>
 								<?php endif; ?>
 								<div class="pb-board__main">
-									<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
-									<?php if ( $excerpt ) : ?>
-										<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+									<a class="pb-board__main-link" href="<?php echo esc_url( get_permalink( $injected_post ) ); ?>">
+										<h2 class="pb-board__post-title"><?php echo esc_html( get_the_title( $injected_post ) ); ?></h2>
+										<?php if ( $excerpt ) : ?>
+											<div class="pb-board__excerpt"><?php echo esc_html( $excerpt ); ?></div>
+										<?php endif; ?>
+									</a>
+								</div>
+								<div class="pb-board__row-actions">
+									<?php if ( $can_edit ) : ?>
+										<button class="pb-board__action-btn pb-board__edit-btn"
+											type="button"
+											data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>"
+											data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+											aria-label="글 수정">
+											<svg viewBox="0 0 24 24" aria-hidden="true">
+												<path d="M12 20h9"></path>
+												<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+											</svg>
+										</button>
+										<button class="pb-board__action-btn pb-board__delete-btn"
+											type="button"
+											data-post-id="<?php echo esc_attr( $injected_post->ID ); ?>"
+											data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+											aria-label="글 삭제">
+											<svg viewBox="0 0 24 24" aria-hidden="true">
+												<path d="M3 6h18"></path>
+												<path d="M8 6V4h8v2"></path>
+												<path d="M19 6l-1 14H6L5 6"></path>
+												<path d="M10 11v6"></path>
+												<path d="M14 11v6"></path>
+											</svg>
+										</button>
 									<?php endif; ?>
 								</div>
-								<div class="pb-board__cat"><?php echo ! empty( $post_cats ) ? esc_html( $post_cats[0]->name ) : ''; ?></div>
-							</a>
+							</div>
 						<?php endforeach; ?>
 					<?php else : ?>
 						<div class="pb-archive__empty">게시글이 없습니다.</div>
@@ -1654,6 +1888,323 @@ if ( ! $is_gallery_view && function_exists( 'project_b_get_board_injected_post_s
 		<?php endif; ?>
 	</div>
 </main>
+
+<?php if ( ! $is_gallery_view && ! $is_done_list_view ) : ?>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<div id="pb-editor-modal" class="pb-editor-modal" hidden>
+	<div class="pb-editor-modal__backdrop"></div>
+	<div class="pb-editor-modal__panel" role="dialog" aria-modal="true" aria-labelledby="pb-editor-title">
+		<input id="pb-editor-title" class="pb-editor-modal__title" type="text" placeholder="제목">
+		<div id="pb-editor-toolbar">
+			<span class="ql-formats">
+				<select class="ql-size">
+					<option value="small">Small</option>
+					<option selected>Normal</option>
+					<option value="large">Large</option>
+					<option value="huge">Huge</option>
+				</select>
+			</span>
+			<span class="ql-formats">
+				<button class="ql-bold" type="button"></button>
+				<button class="ql-italic" type="button"></button>
+				<button class="ql-strike" type="button"></button>
+			</span>
+			<span class="ql-formats">
+				<button class="ql-align" value="" type="button"></button>
+				<button class="ql-align" value="center" type="button"></button>
+				<button class="ql-align" value="right" type="button"></button>
+			</span>
+		</div>
+		<div id="pb-editor-body"></div>
+		<div id="pb-editor-status" class="pb-editor-modal__status" aria-live="polite"></div>
+		<div class="pb-editor-modal__footer">
+			<button id="pb-editor-cancel" type="button">취소</button>
+			<button id="pb-editor-save" type="button">저장</button>
+		</div>
+	</div>
+</div>
+<script>
+(function () {
+	const rows = document.querySelectorAll('.pb-board__row');
+	if (!rows.length) {
+		return;
+	}
+	const modal = document.getElementById('pb-editor-modal');
+	const modalBackdrop = modal ? modal.querySelector('.pb-editor-modal__backdrop') : null;
+	const titleInput = document.getElementById('pb-editor-title');
+	const saveButton = document.getElementById('pb-editor-save');
+	const cancelButton = document.getElementById('pb-editor-cancel');
+	const statusNode = document.getElementById('pb-editor-status');
+	let quill = null;
+	let activePostId = '';
+	let activeNonce = '';
+	let activeRow = null;
+
+	function setStatus(message) {
+		if (statusNode) {
+			statusNode.textContent = message || '';
+		}
+	}
+
+	function stripHtml(html) {
+		const temp = document.createElement('div');
+		temp.innerHTML = html;
+		return (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+	}
+
+	function buildExcerpt(html) {
+		const text = stripHtml(html);
+		if (!text) {
+			return '';
+		}
+
+		return text.length > 120 ? text.slice(0, 120).trim() + '...' : text;
+	}
+
+	function ensureQuill() {
+		if (quill || !window.Quill) {
+			if (quill) {
+				return true;
+			}
+
+			return false;
+		}
+
+		quill = new window.Quill('#pb-editor-body', {
+			theme: 'snow',
+			modules: {
+				toolbar: '#pb-editor-toolbar'
+			}
+		});
+
+		return true;
+	}
+
+	function openModal() {
+		if (!modal) {
+			return;
+		}
+
+		modal.hidden = false;
+		document.body.style.overflow = 'hidden';
+	}
+
+	function closeModal() {
+		if (!modal) {
+			return;
+		}
+
+		modal.hidden = true;
+		document.body.style.overflow = '';
+		activePostId = '';
+		activeNonce = '';
+		activeRow = null;
+		setStatus('');
+
+		if (titleInput) {
+			titleInput.value = '';
+		}
+
+		if (quill) {
+			quill.setContents([]);
+		}
+
+		if (saveButton) {
+			saveButton.disabled = false;
+			saveButton.textContent = '저장';
+		}
+	}
+
+	async function openEditor(button) {
+		const postId = button.getAttribute('data-post-id');
+		const nonce = button.getAttribute('data-nonce');
+		const row = button.closest('.pb-board__row');
+
+		if (!postId || !nonce || !row) {
+			return;
+		}
+
+		if (!ensureQuill()) {
+			window.alert('에디터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+			return;
+		}
+
+		activePostId = postId;
+		activeNonce = nonce;
+		activeRow = row;
+		openModal();
+		setStatus('글을 불러오는 중...');
+
+		if (titleInput) {
+			titleInput.value = '';
+		}
+
+		quill.setContents([]);
+
+		try {
+			const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(postId) + '?context=edit', {
+				headers: {
+					'X-WP-Nonce': nonce
+				},
+				credentials: 'same-origin'
+			});
+
+			if (!response.ok) {
+				throw new Error('load_failed');
+			}
+
+			const data = await response.json();
+			if (titleInput) {
+				titleInput.value = data && data.title && typeof data.title.raw === 'string' ? data.title.raw : '';
+			}
+
+			quill.clipboard.dangerouslyPasteHTML(data && data.content && typeof data.content.raw === 'string' ? data.content.raw : '');
+			setStatus('');
+		} catch (error) {
+			setStatus('');
+			closeModal();
+			window.alert('글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+		}
+	}
+
+	async function saveEditor() {
+		if (!activePostId || !activeNonce || !activeRow || !quill) {
+			return;
+		}
+
+		const title = titleInput ? titleInput.value.trim() : '';
+		const content = quill.root.innerHTML;
+
+		if (!title) {
+			setStatus('제목을 입력해 주세요.');
+			if (titleInput) {
+				titleInput.focus();
+			}
+			return;
+		}
+
+		saveButton.disabled = true;
+		saveButton.textContent = '저장 중';
+		setStatus('저장하는 중...');
+
+		try {
+			const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(activePostId), {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': activeNonce
+				},
+				credentials: 'same-origin',
+				body: JSON.stringify({
+					title: title,
+					content: content
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('save_failed');
+			}
+
+			const titleNode = activeRow.querySelector('.pb-board__post-title');
+			const excerptNode = activeRow.querySelector('.pb-board__excerpt');
+			const nextExcerpt = buildExcerpt(content);
+
+			if (titleNode) {
+				titleNode.textContent = title;
+			}
+
+			if (excerptNode) {
+				if (nextExcerpt) {
+					excerptNode.textContent = nextExcerpt;
+				} else {
+					excerptNode.remove();
+				}
+			} else if (nextExcerpt) {
+				const link = activeRow.querySelector('.pb-board__main-link');
+				if (link) {
+					const nextExcerptNode = document.createElement('div');
+					nextExcerptNode.className = 'pb-board__excerpt';
+					nextExcerptNode.textContent = nextExcerpt;
+					link.appendChild(nextExcerptNode);
+				}
+			}
+
+			setStatus('');
+			closeModal();
+		} catch (error) {
+			saveButton.disabled = false;
+			saveButton.textContent = '저장';
+			setStatus('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+		}
+	}
+
+	document.querySelectorAll('.pb-board__edit-btn').forEach(function (button) {
+		button.addEventListener('click', function () {
+			openEditor(button);
+		});
+	});
+
+	document.querySelectorAll('.pb-board__delete-btn').forEach(function (button) {
+		button.addEventListener('click', async function () {
+			const postId = button.getAttribute('data-post-id');
+			const nonce = button.getAttribute('data-nonce');
+			const row = button.closest('.pb-board__row');
+
+			if (!postId || !nonce || !row) {
+				return;
+			}
+
+			if (!window.confirm('이 글을 삭제할까요?')) {
+				return;
+			}
+
+			const originalText = button.textContent;
+			button.disabled = true;
+			button.textContent = '삭제 중';
+
+			try {
+				const response = await fetch('/wp-json/wp/v2/posts/' + encodeURIComponent(postId) + '?force=true', {
+					method: 'DELETE',
+					headers: {
+						'X-WP-Nonce': nonce
+					},
+					credentials: 'same-origin'
+				});
+
+				if (!response.ok) {
+					throw new Error('delete_failed');
+				}
+
+				row.remove();
+			} catch (error) {
+				button.disabled = false;
+				button.textContent = originalText;
+				window.alert('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+			}
+		});
+	});
+
+	if (modalBackdrop) {
+		modalBackdrop.addEventListener('click', closeModal);
+	}
+
+	if (cancelButton) {
+		cancelButton.addEventListener('click', closeModal);
+	}
+
+	if (saveButton) {
+		saveButton.addEventListener('click', saveEditor);
+	}
+
+	document.addEventListener('keydown', function (event) {
+		if (event.key === 'Escape' && modal && !modal.hidden) {
+			closeModal();
+		}
+	});
+})();
+</script>
+<?php endif; ?>
 
 <?php
 wp_reset_postdata();
